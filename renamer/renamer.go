@@ -2,21 +2,12 @@ package renamer
 
 import (
 	"ImageRenamer/renamer/utility"
-	"fyne.io/fyne/v2/widget"
 	"os"
 	"path/filepath"
 	"strings"
 )
 
-type Object struct {
-	InputFolder     string
-	OutputFolder    string
-	ErrorFolder     string
-	DuplicateFolder string
-	ProgressBar     *widget.ProgressBar
-}
-
-func Rename(inputFolder string, outputFolder string, errorFolder string, duplicateFolder string, progressBar *widget.ProgressBar) error {
+func Rename(inputFolder string, outputFolder string, errorFolder string, duplicateFolder string, onProgress func()) error {
 
 	err := os.MkdirAll(outputFolder, 0755)
 	if err != nil {
@@ -99,7 +90,7 @@ func Rename(inputFolder string, outputFolder string, errorFolder string, duplica
 								}
 							}
 						}
-						progressBar.SetValue(progressBar.Value + 1)
+						onProgress()
 					}
 				}
 			}

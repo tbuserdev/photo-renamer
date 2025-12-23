@@ -37,3 +37,6 @@ go.work.sum
 # Application
 ImageRenamer
 photo-renamer
+
+# Test Folder
+_test
