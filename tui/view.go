@@ -52,6 +52,11 @@ func (m Model) View() string {
 
 		s += "\n[TAB] Switch | [ENTER] Start | [ESC] Quit\n"
 
+	case PreviewView:
+		s = titleStyle.Render("Preview Rename") + "\n\n"
+		s += inputStyle.Render(m.Table.View()) + "\n"
+		s += "\n[ENTER] Confirm | [ESC] Back\n"
+
 	case RenamingView:
 		s = titleStyle.Render("Renaming...") + "\n\n"
 		s += m.ProgressBar.View() + "\n\n"
