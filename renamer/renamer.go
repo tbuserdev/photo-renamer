@@ -1,9 +1,9 @@
 package renamer
 
 import (
-	"ImageRenamer/renamer/utility"
 	"os"
 	"path/filepath"
+	"photo-renamer/renamer/utility"
 	"strings"
 )
 

@@ -1,7 +1,7 @@
 package tui
 
 import (
-	"ImageRenamer/renamer"
+	"photo-renamer/renamer"
 
 	"path/filepath"
 

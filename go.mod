@@ -1,4 +1,4 @@
-module ImageRenamer
+module photo-renamer
 
 go 1.25
 

@@ -1,9 +1,9 @@
 package main
 
 import (
-	"ImageRenamer/tui"
 	"fmt"
 	"os"
+	"photo-renamer/tui"
 
 	tea "github.com/charmbracelet/bubbletea"
 )
