@@ -1,4 +1,4 @@
-# Photo Renamer & Copy Tool
+# Photo Renamer
 
 A powerful and simple TUI (Terminal User Interface) tool built in Go for automated photo renaming and organization. This tool extracts EXIF metadata from your images to create descriptive, standardized filenames and organizes them into your preferred directory structure.
 
@@ -18,20 +18,17 @@ The tool generates filenames based on the following pattern:
 - **Standard**: `YYYY-MM-DD_HH-MM-SS_Maker-Model.ext`
 - **Edited**: `YYYY-MM-DD_HH-MM-SS_Maker-Model_Software.ext` (e.g., including "Lightroom")
 
-## 🛠 Prerequisites
-
-- [Go](https://go.dev/doc/install) (version 1.25 or higher)
-
 ## 📦 Installation
 
 ### From Binary (Recommended)
 
-1. Go to the [Releases](https://github.com/yourusername/photo-renamer/releases) page.
+1. Go to the [Releases](https://github.com/tbuserdev/photo-renamer/releases) page.
 2. Download the archive for your operating system.
 3. Extract the archive.
 
-**macOS / Linux users:**
+#### macOS / Linux users
 You may need to make the binary executable:
+
 ```bash
 chmod +x photo-renamer
 ```
@@ -47,15 +44,11 @@ xattr -d com.apple.quarantine photo-renamer
 
 ### From Source
 
-   ```bash
-   git clone https://github.com/yourusername/photo-renamer.git
-   cd photo-renamer
-   ```
-
-2. Install dependencies:
-   ```bash
-   go mod download
-   ```
+```bash
+git clone https://github.com/yourusername/photo-renamer.git
+cd photo-renamer
+go mod download
+```
 
 ## 🖥 Usage
 
@@ -66,21 +59,16 @@ xattr -d com.apple.quarantine photo-renamer
    - On **macOS/Linux**, you can also run it from the terminal: `./photo-renamer`
 
 **2. Running from Source (Developers):**
-   ```bash
-   go run .
-   ```
+```bash
+go run .
+```
 
 ### Controls & Workflow
-   - **Select Input Folder**: Navigate through directories using the **Arrow Keys**. Press **Enter** to select the currently highlighted directory as your source folder.
-   - **Review Preview**: A table will appear showing the proposed filename changes and identifying any duplicates or errors.
-   - **Confirm Rename**: Press **Enter** to confirm and start the renaming process.
-   - **Exit**: Press **Esc** or **Ctrl+C** to quit the application at any time.
 
-## 📂 Project Structure
-
-- `main.go`: Entry point and UI definition using Fyne.
-- `renamer/`: Core logic for file traversal and renaming.
-- `renamer/metadata.go`: Metadata extraction (EXIF) and system utility functions.
+- **Select Input Folder**: Navigate through directories using the **Arrow Keys**. Press **Enter** to select the currently highlighted directory as your source folder.
+- **Review Preview**: A table will appear showing the proposed filename changes and identifying any duplicates or errors.
+- **Confirm Rename**: Press **Enter** to confirm and start the renaming process.
+- **Exit**: Press **Esc** or **Ctrl+C** to quit the application at any time.
 
 ## 📜 Dependencies
 
