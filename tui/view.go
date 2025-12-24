@@ -23,9 +23,7 @@ var (
 
 	// Styles
 	mainContainer = lipgloss.NewStyle().
-			Padding(1, 2).
-			BorderForeground(ghBg3).
-			Background(ghBg)
+			Padding(1, 2)
 
 	headerStyle = lipgloss.NewStyle().
 			Bold(true).
