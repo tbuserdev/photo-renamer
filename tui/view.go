@@ -7,70 +7,118 @@ import (
 )
 
 var (
-	titleStyle = lipgloss.NewStyle().
+	// User Colors
+	ghBg     = lipgloss.Color("#0d1117")
+	ghRed    = lipgloss.Color("#fa7970")
+	ghBg2    = lipgloss.Color("#161b22")
+	ghOrange = lipgloss.Color("#faa356")
+	ghBg3    = lipgloss.Color("#21262d")
+	ghGray   = lipgloss.Color("#89929b")
+	ghGreen  = lipgloss.Color("#7ce38b")
+	ghBlueL  = lipgloss.Color("#a2d2fb")
+	ghText   = lipgloss.Color("#c6cdd5")
+	ghBlueM  = lipgloss.Color("#77bdfb")
+	ghWhite  = lipgloss.Color("#ecf2f8")
+	ghPurple = lipgloss.Color("#cea5fb")
+
+	// Styles
+	mainContainer = lipgloss.NewStyle().
+			Padding(1, 2).
+			BorderForeground(ghBg3).
+			Background(ghBg)
+
+	headerStyle = lipgloss.NewStyle().
 			Bold(true).
-			Foreground(lipgloss.Color("#0d1117")).
-			Background(lipgloss.Color("#77bdfb")).
+			Foreground(ghBg).
+			Background(ghBlueM).
 			Padding(0, 1).
 			MarginBottom(1)
 
-	inputStyle = lipgloss.NewStyle().
-			Border(lipgloss.RoundedBorder()).
-			Padding(0, 1).
-			MarginBottom(1)
+	labelStyle = lipgloss.NewStyle().
+			Foreground(ghBlueL).
+			Bold(true)
 
-	focusedStyle = inputStyle.Copy().
-			BorderForeground(lipgloss.Color("#77bdfb"))
+	pathStyle = lipgloss.NewStyle().
+			Foreground(ghBlueM).
+			Italic(true).
+			Underline(true)
 
-	btnStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("#0d1117")).
-			Background(lipgloss.Color("#77bdfb")).
-			Padding(0, 2).
+	helpStyle = lipgloss.NewStyle().
+			Foreground(ghGray)
+
+	keyStyle = lipgloss.NewStyle().
+			Foreground(ghOrange).
+			Bold(true)
+
+	footerStyle = lipgloss.NewStyle().
+			MarginTop(1).
+			Border(lipgloss.NormalBorder(), true, false, false, false).
+			BorderForeground(ghBg2).
+			PaddingTop(1)
+
+	tableContainer = lipgloss.NewStyle().
+			Border(lipgloss.NormalBorder()).
+			BorderForeground(ghBg2).
 			MarginTop(1)
+
+	errorStyle = lipgloss.NewStyle().
+			Foreground(ghRed).
+			Bold(true)
+
+	successStyle = lipgloss.NewStyle().
+			Foreground(ghGreen).
+			Bold(true)
 )
 
 func (m Model) View() string {
-	var s string
+	var body string
+	var footer string
+	var headerTitle string
 
 	switch m.State {
-	case InputView:
-		s = titleStyle.Render("photo-renamer") + "\n\n"
-
-		s += "Input Folder:\n"
-		if m.CurrentInput == 0 {
-			s += focusedStyle.Render(m.InputPathInput.View()) + "\n"
-		} else {
-			s += inputStyle.Render(m.InputPathInput.View()) + "\n"
-		}
-
-		s += "Output Folder:\n"
-		if m.CurrentInput == 1 {
-			s += focusedStyle.Render(m.OutputPathInput.View()) + "\n"
-		} else {
-			s += inputStyle.Render(m.OutputPathInput.View()) + "\n"
-		}
-
-		s += "\n[TAB] Switch | [ENTER] Start | [ESC] Quit\n"
+	case InputSelectView:
+		headerTitle = "SELECT INPUT FOLDER"
+		body = labelStyle.Render("LOCATION: ") + pathStyle.Render(m.FilePicker.CurrentDirectory) + "\n\n"
+		body += m.FilePicker.View()
+		footer = fmt.Sprintf("%s  •  %s  •  %s",
+			keyStyle.Render("↑ ↓ ← →")+" navigate",
+			keyStyle.Render("ENTER")+" preview changes",
+			keyStyle.Render("ESC")+" quit",
+		)
 
 	case PreviewView:
-		s = titleStyle.Render("Preview Rename") + "\n\n"
-		s += inputStyle.Render(m.Table.View()) + "\n"
-		s += "\n[ENTER] Confirm | [ESC] Back\n"
+		headerTitle = "PREVIEW RENAME"
+		body = labelStyle.Render("PROPOSED CHANGES:") + "\n"
+		body += tableContainer.Render(m.Table.View())
+		footer = fmt.Sprintf("%s  •  %s",
+			keyStyle.Render("ENTER")+" confirm renaming",
+			keyStyle.Render("ESC")+" back",
+		)
 
 	case RenamingView:
-		s = titleStyle.Render("Renaming...") + "\n\n"
-		s += m.ProgressBar.View() + "\n\n"
-		s += fmt.Sprintf("Processing... %d / %d", m.ProcessedFiles, m.TotalFiles) + "\n"
+		headerTitle = "RENAMING IN PROGRESS"
+		body = m.ProgressBar.View() + "\n\n"
+		body += fmt.Sprintf("Processing... %s / %s",
+			keyStyle.Render(fmt.Sprintf("%d", m.ProcessedFiles)),
+			labelStyle.Render(fmt.Sprintf("%d", m.TotalFiles)),
+		)
+		footer = "Please wait until the process is complete..."
 
 	case DoneView:
-		s = titleStyle.Render("Process Finished") + "\n\n"
-		s += m.ProgressBar.View() + "\n\n"
-		s += fmt.Sprintf("Completed: %d files renamed.", m.ProcessedFiles) + "\n"
+		headerTitle = "PROCESS FINISHED"
+		body = m.ProgressBar.View() + "\n\n"
+		body += successStyle.Render(fmt.Sprintf("✓ Successfully processed %d files.", m.ProcessedFiles))
 		if m.Err != nil {
-			s += fmt.Sprintf("\nError: %v\n", m.Err)
+			body += "\n\n" + errorStyle.Render("ERROR: ") + m.Err.Error()
 		}
-		s += "\n[ENTER] Quit\n"
+		footer = keyStyle.Render("ENTER") + " or " + keyStyle.Render("ESC") + " to quit"
 	}
 
-	return lipgloss.NewStyle().Padding(1, 2).Render(s)
+	header := headerStyle.Render(" " + headerTitle + " ")
+	content := header + "\n" + body
+	if footer != "" {
+		content += "\n" + footerStyle.Render(helpStyle.Render(footer))
+	}
+
+	return mainContainer.Render(content)
 }

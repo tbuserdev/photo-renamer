@@ -7,7 +7,6 @@ import (
 
 	"github.com/charmbracelet/bubbles/progress"
 	"github.com/charmbracelet/bubbles/table"
-	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 )
@@ -21,7 +20,7 @@ type previewLoadedMsg []renamer.FileAction
 var globalProgressChan chan struct{}
 
 func (m Model) Init() tea.Cmd {
-	return textinput.Blink
+	return m.FilePicker.Init()
 }
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -30,34 +29,21 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.String() {
-		case "ctrl+c", "esc":
-			if msg.String() == "esc" && m.State == PreviewView {
-				m.State = InputView
+		case "ctrl+c":
+			return m, tea.Quit
+		case "esc":
+			if m.State == PreviewView {
+				m.State = InputSelectView
+				// Reset filepicker if needed, or just return to it
 				return m, nil
 			}
 			return m, tea.Quit
-		case "tab", "shift+tab":
-			if m.State == InputView {
-				m.CurrentInput = (m.CurrentInput + 1) % 2
-				if m.CurrentInput == 0 {
-					m.InputPathInput.Focus()
-					m.OutputPathInput.Blur()
-				} else {
-					m.InputPathInput.Blur()
-					m.OutputPathInput.Focus()
-				}
-				return m, textinput.Blink
-			}
 		case "enter":
-			if m.State == InputView {
-				if m.InputPathInput.Value() != "" && m.OutputPathInput.Value() != "" {
-					// Start Preview instead of direct renaming
-					return m, startPreview(m.InputPathInput.Value(), m.OutputPathInput.Value())
-				}
-			} else if m.State == PreviewView {
+			if m.State == PreviewView {
 				m.State = RenamingView
 				// Use the already loaded PreviewActions if available
-				return m, startRenaming(m.InputPathInput.Value(), m.OutputPathInput.Value(), m.PreviewActions)
+				// For in-place rename, InputPath is both source and dest
+				return m, startRenaming(m.InputPath, m.InputPath, m.PreviewActions)
 			} else if m.State == DoneView {
 				return m, tea.Quit
 			}
@@ -141,11 +127,23 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 
-	if m.State == InputView {
-		var cmdI, cmdO tea.Cmd
-		m.InputPathInput, cmdI = m.InputPathInput.Update(msg)
-		m.OutputPathInput, cmdO = m.OutputPathInput.Update(msg)
-		return m, tea.Batch(cmdI, cmdO)
+	if m.State == InputSelectView {
+		var cmd tea.Cmd
+		m.FilePicker, cmd = m.FilePicker.Update(msg)
+
+		if didSelect, path := m.FilePicker.DidSelectFile(msg); didSelect {
+			m.InputPath = path
+			m.State = PreviewView
+			return m, startPreview(m.InputPath, m.InputPath)
+		}
+
+		if key, ok := msg.(tea.KeyMsg); ok && key.String() == "enter" {
+			m.InputPath = m.FilePicker.CurrentDirectory
+			m.State = PreviewView
+			return m, startPreview(m.InputPath, m.InputPath)
+		}
+
+		return m, cmd
 	}
 
 	if m.State == PreviewView {
