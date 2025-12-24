@@ -91,15 +91,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		)
 
 		s := table.DefaultStyles()
-		s.Header = s.Header.
+		s.Header = tableHeaderStyle.Copy().
 			BorderStyle(lipgloss.NormalBorder()).
-			BorderForeground(lipgloss.Color("240")).
-			BorderBottom(true).
-			Bold(false)
-		s.Selected = s.Selected.
-			Foreground(lipgloss.Color("229")).
-			Background(lipgloss.Color("57")).
-			Bold(false)
+			BorderForeground(ghBg2).
+			BorderBottom(true)
+		s.Selected = tableSelectedStyle
+		s.Cell = tableCellStyle
 		t.SetStyles(s)
 
 		m.Table = t

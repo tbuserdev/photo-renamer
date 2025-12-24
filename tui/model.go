@@ -8,6 +8,7 @@ import (
 	"github.com/charmbracelet/bubbles/filepicker"
 	"github.com/charmbracelet/bubbles/progress"
 	"github.com/charmbracelet/bubbles/table"
+	"github.com/charmbracelet/lipgloss"
 )
 
 type ValidState int
@@ -43,7 +44,15 @@ func InitialModel() Model {
 	fp.ShowPermissions = false
 	fp.ShowSize = false
 
-	pb := progress.New(progress.WithDefaultGradient())
+	// Apply Theme
+	fp.Styles.Cursor = lipgloss.NewStyle().Foreground(ghOrange)
+	fp.Styles.Directory = lipgloss.NewStyle().Foreground(ghBlueM)
+	fp.Styles.File = lipgloss.NewStyle().Foreground(ghText)
+	fp.Styles.Selected = lipgloss.NewStyle().Foreground(ghPurple).Bold(true)
+	fp.Styles.DisabledCursor = lipgloss.NewStyle().Foreground(ghGray)
+	fp.Styles.EmptyDirectory = lipgloss.NewStyle().Foreground(ghGray).Italic(true)
+
+	pb := progress.New(progress.WithGradient(string(ghBlueM), string(ghPurple)))
 
 	return Model{
 		State:       InputSelectView,
