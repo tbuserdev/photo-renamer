@@ -9,8 +9,8 @@ import (
 var (
 	titleStyle = lipgloss.NewStyle().
 			Bold(true).
-			Foreground(lipgloss.Color("#FAFAFA")).
-			Background(lipgloss.Color("#7D56F4")).
+			Foreground(lipgloss.Color("#0d1117")).
+			Background(lipgloss.Color("#77bdfb")).
 			Padding(0, 1).
 			MarginBottom(1)
 
@@ -20,11 +20,11 @@ var (
 			MarginBottom(1)
 
 	focusedStyle = inputStyle.Copy().
-			BorderForeground(lipgloss.Color("205"))
+			BorderForeground(lipgloss.Color("#77bdfb"))
 
 	btnStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("#FAFAFA")).
-			Background(lipgloss.Color("#7D56F4")).
+			Foreground(lipgloss.Color("#0d1117")).
+			Background(lipgloss.Color("#77bdfb")).
 			Padding(0, 2).
 			MarginTop(1)
 )
@@ -34,7 +34,7 @@ func (m Model) View() string {
 
 	switch m.State {
 	case InputView:
-		s = titleStyle.Render("Image Rename & Copy Tool") + "\n\n"
+		s = titleStyle.Render("photo-renamer") + "\n\n"
 
 		s += "Input Folder:\n"
 		if m.CurrentInput == 0 {
