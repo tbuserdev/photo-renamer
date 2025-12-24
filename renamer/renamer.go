@@ -3,7 +3,6 @@ package renamer
 import (
 	"os"
 	"path/filepath"
-	"photo-renamer/renamer/utility"
 	"strings"
 )
 
@@ -59,7 +58,7 @@ func ScanFiles(inputFolder string) ([]FileAction, error) {
 							OriginalPath: path,
 						}
 						// CREATE NEW FILENAME
-						newFileName := utility.Image(path)
+						newFileName := Image(path)
 						action.NewName = newFileName
 
 						if strings.Contains(newFileName, "error") {

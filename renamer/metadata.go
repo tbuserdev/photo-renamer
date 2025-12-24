@@ -1,14 +1,15 @@
-package utility
+package renamer
 
 import (
-	"github.com/rwcarlsen/goexif/exif"
-	"github.com/tidwall/gjson"
 	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
+
+	"github.com/rwcarlsen/goexif/exif"
+	"github.com/tidwall/gjson"
 )
 
 func openJson(file string) (jsonString string) {

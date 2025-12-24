@@ -54,7 +54,7 @@ The tool generates filenames based on the following pattern:
 
 - `main.go`: Entry point and UI definition using Fyne.
 - `renamer/`: Core logic for file traversal and renaming.
-- `renamer/utility/`: Metadata extraction (EXIF) and system utility functions.
+- `renamer/metadata.go`: Metadata extraction (EXIF) and system utility functions.
 - `progressCounter/`: Logic for calculating total file count for the progress bar.
 
 ## 📜 Dependencies
