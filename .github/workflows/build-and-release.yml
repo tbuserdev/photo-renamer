@@ -54,8 +54,9 @@ jobs:
         if [ "${{ matrix.goos }}" = "windows" ]; then
           BINARY_NAME="${BINARY_NAME}.exe"
         fi
-        go build -o build/${BINARY_NAME} .
-
+        # Added -ldflags here:
+        go build -ldflags "-X main.Version=${{ github.ref_name }}" -o build/${BINARY_NAME} .
+        
     - name: Upload Artifacts
       uses: actions/upload-artifact@v4
       with:
