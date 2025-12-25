@@ -39,4 +39,4 @@ ImageRenamer
 photo-renamer
 
 # Test Folder
-_test
+_test*

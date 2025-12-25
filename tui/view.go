@@ -28,7 +28,8 @@ func (m Model) View() string {
 
 	case PreviewView:
 		headerTitle = "PREVIEW RENAME"
-		body = labelStyle.Render("PROPOSED CHANGES:") + "\n"
+		stats := fmt.Sprintf("Total Files: %d  •  Original: %d", m.TotalFiles, m.OriginalFiles)
+		body = labelStyle.Render("PROPOSED CHANGES:") + " " + helpStyle.Render(stats) + "\n"
 		body += tableContainer.Render(m.Table.View())
 		footer = fmt.Sprintf("%s  •  %s",
 			keyStyle.Render("ENTER")+" confirm renaming",

@@ -34,6 +34,7 @@ type Model struct {
 	Progress       float64
 	TotalFiles     int
 	ProcessedFiles int
+	OriginalFiles  int
 	Err            error
 	DebugData      string
 	DebugTable     table.Model

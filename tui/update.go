@@ -67,6 +67,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, cmd
 	case previewLoadedMsg:
 		m.PreviewActions = msg
+		m.TotalFiles = len(msg)
+		m.OriginalFiles = 0
 		var rows []table.Row
 		for _, action := range msg {
 			status := "OK"
@@ -74,6 +76,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				status = "ERROR"
 			} else if action.IsSkipped {
 				status = "SKIPPED"
+				m.OriginalFiles++
 			} else if action.IsDuplicate {
 				status = "DUPLICATE"
 			}
