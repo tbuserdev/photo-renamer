@@ -187,8 +187,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			switch key.String() {
 			case "r", "R":
 				m.InputPath = m.FilePicker.CurrentDirectory
-				m.State = PreviewView
-				return m, startPreview(m.InputPath, m.InputPath)
+				m.State = LoadingView
+				return m, tea.Batch(m.Spinner.Tick, startPreview(m.InputPath, m.InputPath))
 			}
 		}
 
@@ -202,6 +202,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	if m.State == DebugView {
 		m.DebugTable, cmd = m.DebugTable.Update(msg)
+		return m, cmd
+	}
+
+	if m.State == LoadingView {
+		var cmd tea.Cmd
+		m.Spinner, cmd = m.Spinner.Update(msg)
 		return m, cmd
 	}
 

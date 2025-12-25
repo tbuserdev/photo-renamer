@@ -21,6 +21,11 @@ func (m Model) View() string {
 			keyStyle.Render("ESC")+" quit",
 		)
 
+	case LoadingView:
+		headerTitle = "SCANNING PREVIEW"
+		body = fmt.Sprintf("\n %s Generating preview...", m.Spinner.View())
+		footer = ""
+
 	case PreviewView:
 		headerTitle = "PREVIEW RENAME"
 		body = labelStyle.Render("PROPOSED CHANGES:") + "\n"

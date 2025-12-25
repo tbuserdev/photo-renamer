@@ -7,6 +7,7 @@ import (
 
 	"github.com/charmbracelet/bubbles/filepicker"
 	"github.com/charmbracelet/bubbles/progress"
+	"github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/bubbles/table"
 	"github.com/charmbracelet/lipgloss"
 )
@@ -15,6 +16,7 @@ type ValidState int
 
 const (
 	InputSelectView ValidState = iota
+	LoadingView
 	PreviewView
 	RenamingView
 	DoneView
@@ -25,6 +27,7 @@ type Model struct {
 	State          ValidState
 	FilePicker     filepicker.Model
 	InputPath      string
+	Spinner        spinner.Model
 	Table          table.Model
 	PreviewActions []renamer.FileAction
 	ProgressBar    progress.Model
@@ -57,9 +60,14 @@ func InitialModel() Model {
 
 	pb := progress.New(progress.WithGradient(string(ghBlueM), string(ghPurple)))
 
+	s := spinner.New()
+	s.Spinner = spinner.Dot
+	s.Style = lipgloss.NewStyle().Foreground(ghPurple)
+
 	return Model{
 		State:       InputSelectView,
 		FilePicker:  fp,
 		ProgressBar: pb,
+		Spinner:     s,
 	}
 }
