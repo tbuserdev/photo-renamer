@@ -50,13 +50,29 @@ jobs:
         GOARCH: ${{ matrix.goarch }}
         CGO_ENABLED: 0
       run: |
-        BINARY_NAME=photo-renamer_${{ github.ref_name }}_${{ matrix.goos }}-${{ matrix.goarch }}
-        if [ "${{ matrix.goos }}" = "windows" ]; then
-          BINARY_NAME="${BINARY_NAME}.exe"
-        fi
-        # Added -ldflags here:
-        go build -ldflags "-X main.Version=${{ github.ref_name }}" -o build/${BINARY_NAME} .
-
+          SIMPLE_NAME="photo-renamer"
+          if [ "${{ matrix.goos }}" = "windows" ]; then
+            SIMPLE_NAME="${SIMPLE_NAME}.exe"
+          fi
+          
+          # 2. Build the binary directly
+          go build -ldflags "-X main.Version=${{ github.ref_name }}" -o build/${SIMPLE_NAME} .
+          
+          # 3. Create the Zip file name (The complex name for the release page)
+          # e.g. photo-renamer_v0.1.0_darwin-arm64.zip
+          ASSET_NAME=photo-renamer_${{ github.ref_name }}_${{ matrix.goos }}-${{ matrix.goarch }}
+          
+          # 4. Zip it! 
+          # We go into the build folder so the zip doesn't contain a "build/" folder inside
+          cd build
+          if [ "${{ matrix.goos }}" = "windows" ]; then
+            # For Windows, we use zip
+            zip ${ASSET_NAME}.zip ${SIMPLE_NAME}
+          else
+            # For Mac/Linux, we use tar.gz (standard) OR zip. 
+            # Let's use zip because it's easier for non-techies on Mac.
+            zip ${ASSET_NAME}.zip ${SIMPLE_NAME}
+          fi
     - name: Upload Artifacts
       uses: actions/upload-artifact@v4
       with:
