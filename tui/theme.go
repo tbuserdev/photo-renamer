@@ -66,7 +66,6 @@ var (
 	// Table Styles
 	tableHeaderStyle = lipgloss.NewStyle().
 				Foreground(ghWhite).
-				Background(ghBg2).
 				Bold(true)
 
 	tableSelectedStyle = lipgloss.NewStyle().
