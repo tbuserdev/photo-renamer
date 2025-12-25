@@ -11,6 +11,7 @@ type FileAction struct {
 	NewName      string
 	IsError      bool
 	IsDuplicate  bool
+	IsSkipped    bool
 }
 
 // ScanFiles walks the input folder and generates a list of FileAction for all valid images.
@@ -88,6 +89,13 @@ func PreviewRename(inputFolder, outputFolder string) ([]FileAction, error) {
 	seenNames := make(map[string]bool)
 	for i, action := range actions {
 		if !action.IsError {
+			// Check if filename is same as proposed
+			if filepath.Base(action.OriginalPath) == action.NewName {
+				actions[i].IsSkipped = true
+				seenNames[action.NewName] = true
+				continue
+			}
+
 			// CHECK FOR DUPLICATES
 			// 1. Check if file exists in output folder
 			_, err := os.Stat(filepath.Join(outputFolder, action.NewName))
@@ -129,6 +137,11 @@ func Rename(actions []FileAction, outputFolder string, errorFolder string, dupli
 
 	// Perform renaming
 	for _, action := range actions {
+		if action.IsSkipped {
+			onProgress()
+			continue
+		}
+
 		if action.IsError {
 			originalName := filepath.Base(action.OriginalPath)
 			destPath := filepath.Join(errorFolder, originalName)

@@ -72,6 +72,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			status := "OK"
 			if action.IsError {
 				status = "ERROR"
+			} else if action.IsSkipped {
+				status = "SKIPPED"
 			} else if action.IsDuplicate {
 				status = "DUPLICATE"
 			}
