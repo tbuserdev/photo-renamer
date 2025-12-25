@@ -43,9 +43,17 @@ func GetExifData(file string) (jsonString string) {
 
 func date(metadata string) (date string) {
 	dateTime := gjson.Get(metadata, "DateTimeOriginal").String()
-	dateTime = strings.Replace(dateTime, ":", "-", -1)
-	dateTime = strings.Replace(dateTime, " ", "_", -1)
-	return dateTime
+	if dateTime == "" {
+		dateTime = gjson.Get(metadata, "DateTimeDigitized").String()
+	}
+	if dateTime == "" {
+		dateTime = gjson.Get(metadata, "DateTime").String()
+	}
+	if dateTime == "" {
+		return ""
+	}
+	replacer := strings.NewReplacer(":", "-", " ", "_")
+	return replacer.Replace(dateTime)
 }
 
 func model(metadata string) (model string) {

@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - **Metadata:** Improved software extraction logic to better support Lightroom, Photoshop, and Photomator.
+- **Metadata:** Enhanced datetime extraction with fallback strategy (DateTimeOriginal → DateTimeDigitized → DateTime) for better camera compatibility.
 
 
 
