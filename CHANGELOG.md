@@ -14,7 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - **CI/CD:** Updated binary naming format to use `github.ref_name` for accurate version tracking.
 
----
+
 
 ## [v0.0.2] - 2025-12-25
 
@@ -31,7 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - **UI:** Removed background color from table header style for improved visibility.
 
----
+
 
 ## [v0.0.1] - 2025-12-25
 
