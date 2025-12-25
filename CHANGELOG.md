@@ -13,6 +13,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **UI:** Added a loading spinner to the preview screen to indicate progress while scanning files.
 - **UI:** Added display of original file count in the preview table header.
 
+### Changed
+- **Metadata:** Improved software extraction logic to better support Lightroom, Photoshop, and Photomator.
+
 
 
 ## [v0.1.0] - 2025-12-25

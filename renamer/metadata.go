@@ -68,8 +68,20 @@ func edited(metadata string) (edited string) {
 	if strings.Contains(software, model) {
 		return model
 	}
-	if strings.Contains(software, "Adobe Lightroom") {
+	if strings.Contains(software, "Lightroom") {
 		return "Lightroom"
+	}
+	if strings.Contains(software, "Adobe Photoshop Lightroom Classic") {
+		return "Lightroom"
+	}
+	if strings.Contains(software, "Adobe Photoshop") {
+		return "Photoshop"
+	}
+	if strings.Contains(software, "Photoshop") {
+		return "Photoshop"
+	}
+	if strings.Contains(software, "Photomator") {
+		return "Photomator"
 	}
 	if strings.Contains(software, "Ver.1.0") {
 		return model
