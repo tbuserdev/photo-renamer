@@ -27,6 +27,7 @@ jobs:
     name: Build
     needs: test
     runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
     strategy:
       matrix:
         goos: [windows, darwin]
