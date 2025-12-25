@@ -2,6 +2,7 @@ package tui
 
 import (
 	"photo-renamer/renamer"
+	"sort"
 
 	"path/filepath"
 
@@ -9,6 +10,7 @@ import (
 	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/tidwall/gjson"
 )
 
 type progressMsg float64
@@ -32,19 +34,22 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "ctrl+c":
 			return m, tea.Quit
 		case "esc":
-			if m.State == PreviewView {
+			switch m.State {
+			case PreviewView, DebugView:
 				m.State = InputSelectView
 				// Reset filepicker if needed, or just return to it
 				return m, nil
+			default:
+				return m, tea.Quit
 			}
-			return m, tea.Quit
 		case "enter":
-			if m.State == PreviewView {
+			switch m.State {
+			case PreviewView:
 				m.State = RenamingView
 				// Use the already loaded PreviewActions if available
 				// For in-place rename, InputPath is both source and dest
 				return m, startRenaming(m.InputPath, m.InputPath, m.PreviewActions)
-			} else if m.State == DoneView {
+			case DoneView:
 				return m, tea.Quit
 			}
 		}
@@ -129,15 +134,60 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.FilePicker, cmd = m.FilePicker.Update(msg)
 
 		if didSelect, path := m.FilePicker.DidSelectFile(msg); didSelect {
-			m.InputPath = path
-			m.State = PreviewView
-			return m, startPreview(m.InputPath, m.InputPath)
+			// User selected a file, show debug info
+			jsonStr := renamer.GetExifData(path)
+			m.DebugData = jsonStr // Keep raw just in case, or remove if unused
+
+			// Parse JSON and build table
+			var rows []table.Row
+			result := gjson.Parse(jsonStr)
+
+			// We want to sort keys for consistent display
+			var keys []string
+			result.ForEach(func(key, value gjson.Result) bool {
+				keys = append(keys, key.String())
+				return true
+			})
+			sort.Strings(keys)
+
+			for _, k := range keys {
+				val := result.Get(k)
+				rows = append(rows, table.Row{k, val.String()})
+			}
+
+			columns := []table.Column{
+				{Title: "Field", Width: 30},
+				{Title: "Value", Width: 50},
+			}
+
+			t := table.New(
+				table.WithColumns(columns),
+				table.WithRows(rows),
+				table.WithFocused(true),
+				table.WithHeight(15),
+			)
+
+			s := table.DefaultStyles()
+			s.Header = tableHeaderStyle.Copy().
+				BorderStyle(lipgloss.NormalBorder()).
+				BorderForeground(ghBg2).
+				BorderBottom(true)
+			s.Selected = tableSelectedStyle
+			s.Cell = tableCellStyle
+			t.SetStyles(s)
+
+			m.DebugTable = t
+			m.State = DebugView
+			return m, nil
 		}
 
-		if key, ok := msg.(tea.KeyMsg); ok && key.String() == "enter" {
-			m.InputPath = m.FilePicker.CurrentDirectory
-			m.State = PreviewView
-			return m, startPreview(m.InputPath, m.InputPath)
+		if key, ok := msg.(tea.KeyMsg); ok {
+			switch key.String() {
+			case "r", "R":
+				m.InputPath = m.FilePicker.CurrentDirectory
+				m.State = PreviewView
+				return m, startPreview(m.InputPath, m.InputPath)
+			}
 		}
 
 		return m, cmd
@@ -145,6 +195,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	if m.State == PreviewView {
 		m.Table, cmd = m.Table.Update(msg)
+		return m, cmd
+	}
+
+	if m.State == DebugView {
+		m.DebugTable, cmd = m.DebugTable.Update(msg)
 		return m, cmd
 	}
 

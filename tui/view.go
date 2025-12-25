@@ -14,9 +14,10 @@ func (m Model) View() string {
 		headerTitle = "SELECT INPUT FOLDER"
 		body = labelStyle.Render("LOCATION: ") + pathStyle.Render(m.FilePicker.CurrentDirectory) + "\n\n"
 		body += m.FilePicker.View()
-		footer = fmt.Sprintf("%s  •  %s  •  %s",
-			keyStyle.Render("↑ ↓ ← →")+" navigate",
-			keyStyle.Render("ENTER")+" preview changes",
+		footer = fmt.Sprintf("%s  •  %s  •  %s  •  %s",
+			keyStyle.Render("↑/↓/←/→")+" navigate",
+			keyStyle.Render("ENTER")+" show exif data",
+			keyStyle.Render("R")+" preview rename",
 			keyStyle.Render("ESC")+" quit",
 		)
 
@@ -46,6 +47,12 @@ func (m Model) View() string {
 			body += "\n\n" + errorStyle.Render("ERROR: ") + m.Err.Error()
 		}
 		footer = keyStyle.Render("ENTER") + " or " + keyStyle.Render("ESC") + " to quit"
+
+	case DebugView:
+		headerTitle = "FILE EXIF DEBUG"
+		body = labelStyle.Render("EXIF DATA:") + "\n"
+		body += tableContainer.Render(m.DebugTable.View())
+		footer = keyStyle.Render("ESC") + " back"
 	}
 
 	header := headerStyle.Render(" " + headerTitle + " ")

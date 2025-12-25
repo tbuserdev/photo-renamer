@@ -12,7 +12,7 @@ import (
 	"github.com/tidwall/gjson"
 )
 
-func openJson(file string) (jsonString string) {
+func GetExifData(file string) (jsonString string) {
 	imgFile, err := os.Open(file)
 	if err != nil {
 		return "error"
@@ -78,7 +78,7 @@ func edited(metadata string) (edited string) {
 }
 
 func Image(file string) (newFileName string) {
-	metadata := openJson(file)
+	metadata := GetExifData(file)
 	if metadata == "error" {
 		return "METADATA_error"
 	}

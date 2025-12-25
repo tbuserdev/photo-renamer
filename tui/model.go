@@ -18,6 +18,7 @@ const (
 	PreviewView
 	RenamingView
 	DoneView
+	DebugView
 )
 
 type Model struct {
@@ -31,12 +32,14 @@ type Model struct {
 	TotalFiles     int
 	ProcessedFiles int
 	Err            error
+	DebugData      string
+	DebugTable     table.Model
 }
 
 func InitialModel() Model {
 	fp := filepicker.New()
 	fp.DirAllowed = true
-	fp.FileAllowed = false
+	fp.FileAllowed = true
 	fp.ShowHidden = false
 	fp.CurrentDirectory, _ = os.Getwd()
 	fp.AutoHeight = false
