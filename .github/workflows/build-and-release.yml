@@ -56,7 +56,7 @@ jobs:
         fi
         # Added -ldflags here:
         go build -ldflags "-X main.Version=${{ github.ref_name }}" -o build/${BINARY_NAME} .
-        
+
     - name: Upload Artifacts
       uses: actions/upload-artifact@v4
       with:
@@ -71,14 +71,39 @@ jobs:
     permissions:
       contents: write
     steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
       - name: Download Artifacts
         uses: actions/download-artifact@v4
         with:
           path: artifacts
           merge-multiple: true
 
+      - name: Extract Release Notes
+        run: |
+          VERSION="${{ github.ref_name }}"
+          START_LINE=$(grep -n "^## .*$VERSION" CHANGELOG.md | head -n 1 | cut -d: -f1)
+          
+          if [ -z "$START_LINE" ]; then
+            echo "Error: Version $VERSION not found in CHANGELOG.md"
+            exit 1
+          fi
+          
+          NEXT_HEADER_LINE=$(tail -n +$((START_LINE + 1)) CHANGELOG.md | grep -n "^## " | head -n 1 | cut -d: -f1)
+          
+          if [ -z "$NEXT_HEADER_LINE" ]; then
+            tail -n +$((START_LINE + 1)) CHANGELOG.md > release_notes.md
+          else
+            END_LINE=$((START_LINE + NEXT_HEADER_LINE))
+            sed -n "$((START_LINE + 1)),$((END_LINE - 1))p" CHANGELOG.md > release_notes.md
+          fi
+
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
           files: artifacts/*
-          generate_release_notes: true
+          body_path: release_notes.md
+          generate_release_notes: false
