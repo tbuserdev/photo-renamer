@@ -78,16 +78,16 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				status = "DUPLICATE"
 			}
 			rows = append(rows, table.Row{
+				status,
 				filepath.Base(action.OriginalPath),
 				action.NewName,
-				status,
 			})
 		}
 
 		columns := []table.Column{
-			{Title: "Original", Width: 30},
-			{Title: "New Name", Width: 40},
 			{Title: "Status", Width: 10},
+			{Title: "Original", Width: 40},
+			{Title: "New Name", Width: 40},
 		}
 
 		t := table.New(

@@ -66,13 +66,18 @@ var (
 	// Table Styles
 	tableHeaderStyle = lipgloss.NewStyle().
 				Foreground(ghWhite).
-				Bold(true)
+				Bold(true).
+				Padding(0, 1).
+				Border(lipgloss.NormalBorder(), false, true, true, false).
+				BorderForeground(ghBg2)
 
 	tableSelectedStyle = lipgloss.NewStyle().
 				Foreground(ghWhite).
-				Background(ghBg3).
-				Bold(false)
+				Background(ghBg3)
 
 	tableCellStyle = lipgloss.NewStyle().
-			Foreground(ghText)
+			Foreground(ghText).
+			Padding(0, 1).
+			Border(lipgloss.NormalBorder(), false, true, false, false).
+			BorderForeground(ghBg2)
 )
