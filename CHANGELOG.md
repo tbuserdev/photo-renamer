@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [v0.1.3] - 2026-01-19
+
+### Fixed
+- **Metadata:** Relaxed strict requirement for "Model" and "Make" metadata tags. Files with missing metadata now use "Unknown" fallback instead of failing with an error.
+- **Metadata:** Added fallback to "Original" when software information is missing during rename.
+
+
+
 ## [v0.1.2] - 2026-01-19
 
 ### Added

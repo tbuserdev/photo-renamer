@@ -49,7 +49,7 @@ func TestModel(t *testing.T) {
 		{createMockJSON("", "", "Canon EOS 5D Mark IV", ""), "Canon EOS 5D Mark IV"},
 		{createMockJSON("", "", "ILCE-7M3", ""), "ILCE-7M3"},
 		{createMockJSON("", "", "Pixel 6 (US)", ""), "Pixel 6 "}, // Expects truncation before '('
-		{createMockJSON("", "", "", ""), ""},
+		{createMockJSON("", "", "", ""), "Unknown"},
 	}
 
 	for _, test := range tests {
@@ -67,7 +67,7 @@ func TestMaker(t *testing.T) {
 	}{
 		{createMockJSON("", "Canon", "", ""), "Canon"},
 		{createMockJSON("", "SONY", "", ""), "SONY"},
-		{createMockJSON("", "", "", ""), ""},
+		{createMockJSON("", "", "", ""), "Unknown"},
 	}
 
 	for _, test := range tests {

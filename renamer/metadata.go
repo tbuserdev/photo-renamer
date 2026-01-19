@@ -58,6 +58,9 @@ func date(metadata string) (date string) {
 
 func model(metadata string) (model string) {
 	model = gjson.Get(metadata, "Model").String()
+	if model == "" {
+		return "Unknown"
+	}
 	if strings.Contains(model, "(") {
 		model = model[:strings.Index(model, "(")]
 	}
@@ -66,6 +69,9 @@ func model(metadata string) (model string) {
 
 func maker(metadata string) (maker string) {
 	maker = gjson.Get(metadata, "Make").String()
+	if maker == "" {
+		return "Unknown"
+	}
 	return maker
 }
 
@@ -114,18 +120,11 @@ func Image(file string) (newFileName string) {
 	}
 
 	model := model(metadata)
-	if model == "" {
-		return "MODEL_error"
-	}
-
 	maker := maker(metadata)
-	if maker == "" {
-		return "MAKER_error"
-	}
 
 	edited := edited(metadata)
 	if edited == "" {
-		return "SOFTWARE_error"
+		edited = "Original"
 	}
 
 	if edited != model {
