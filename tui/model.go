@@ -38,9 +38,17 @@ type Model struct {
 	Err            error
 	DebugData      string
 	DebugTable     table.Model
+	Styles         Styles
+	Theme          Theme
 }
 
 func InitialModel() Model {
+	theme := FlexokiDark
+	if !lipgloss.HasDarkBackground() {
+		theme = FlexokiLight
+	}
+	styles := InitStyles(theme)
+
 	fp := filepicker.New()
 	fp.DirAllowed = true
 	fp.FileAllowed = true
@@ -52,23 +60,25 @@ func InitialModel() Model {
 	fp.ShowSize = false
 
 	// Apply Theme
-	fp.Styles.Cursor = lipgloss.NewStyle().Foreground(ghOrange)
-	fp.Styles.Directory = lipgloss.NewStyle().Foreground(ghBlueM)
-	fp.Styles.File = lipgloss.NewStyle().Foreground(ghText)
-	fp.Styles.Selected = lipgloss.NewStyle().Foreground(ghPurple).Bold(true)
-	fp.Styles.DisabledCursor = lipgloss.NewStyle().Foreground(ghGray)
-	fp.Styles.EmptyDirectory = lipgloss.NewStyle().Foreground(ghGray).Italic(true)
+	fp.Styles.Cursor = lipgloss.NewStyle().Foreground(theme.Orange)
+	fp.Styles.Directory = lipgloss.NewStyle().Foreground(theme.Blue)
+	fp.Styles.File = lipgloss.NewStyle().Foreground(theme.Fg)
+	fp.Styles.Selected = lipgloss.NewStyle().Foreground(theme.Purple).Bold(true)
+	fp.Styles.DisabledCursor = lipgloss.NewStyle().Foreground(theme.Muted)
+	fp.Styles.EmptyDirectory = lipgloss.NewStyle().Foreground(theme.Muted).Italic(true)
 
-	pb := progress.New(progress.WithGradient(string(ghBlueM), string(ghPurple)))
+	pb := progress.New(progress.WithGradient(string(theme.Blue), string(theme.Purple)))
 
 	s := spinner.New()
 	s.Spinner = spinner.Dot
-	s.Style = lipgloss.NewStyle().Foreground(ghPurple)
+	s.Style = lipgloss.NewStyle().Foreground(theme.Purple)
 
 	return Model{
 		State:       InputSelectView,
 		FilePicker:  fp,
 		ProgressBar: pb,
 		Spinner:     s,
+		Styles:      styles,
+		Theme:       theme,
 	}
 }

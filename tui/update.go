@@ -101,12 +101,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		)
 
 		s := table.DefaultStyles()
-		s.Header = tableHeaderStyle.Copy().
+		s.Header = m.Styles.TableHeader.
 			BorderStyle(lipgloss.NormalBorder()).
-			BorderForeground(ghBg2).
+			BorderForeground(m.Theme.Bg2).
 			BorderBottom(true)
-		s.Selected = tableSelectedStyle
-		s.Cell = tableCellStyle
+		s.Selected = m.Styles.TableSelected
+		s.Cell = m.Styles.TableCell
 		t.SetStyles(s)
 
 		m.Table = t
@@ -173,12 +173,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			)
 
 			s := table.DefaultStyles()
-			s.Header = tableHeaderStyle.Copy().
+			s.Header = m.Styles.TableHeader.
 				BorderStyle(lipgloss.NormalBorder()).
-				BorderForeground(ghBg2).
+				BorderForeground(m.Theme.Bg2).
 				BorderBottom(true)
-			s.Selected = tableSelectedStyle
-			s.Cell = tableCellStyle
+			s.Selected = m.Styles.TableSelected
+			s.Cell = m.Styles.TableCell
 			t.SetStyles(s)
 
 			m.DebugTable = t
@@ -192,6 +192,43 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.InputPath = m.FilePicker.CurrentDirectory
 				m.State = LoadingView
 				return m, tea.Batch(m.Spinner.Tick, startPreview(m.InputPath, m.InputPath))
+			case "t", "T":
+				if m.Theme.Name == FlexokiDark.Name {
+					m.Theme = FlexokiLight
+				} else {
+					m.Theme = FlexokiDark
+				}
+				m.Styles = InitStyles(m.Theme)
+
+				// Update component styles
+				m.FilePicker.Styles.Cursor = lipgloss.NewStyle().Foreground(m.Theme.Orange)
+				m.FilePicker.Styles.Directory = lipgloss.NewStyle().Foreground(m.Theme.Blue)
+				m.FilePicker.Styles.File = lipgloss.NewStyle().Foreground(m.Theme.Fg)
+				m.FilePicker.Styles.Selected = lipgloss.NewStyle().Foreground(m.Theme.Purple).Bold(true)
+				m.FilePicker.Styles.DisabledCursor = lipgloss.NewStyle().Foreground(m.Theme.Muted)
+				m.FilePicker.Styles.EmptyDirectory = lipgloss.NewStyle().Foreground(m.Theme.Muted).Italic(true)
+
+				m.ProgressBar = progress.New(progress.WithGradient(string(m.Theme.Blue), string(m.Theme.Purple)))
+				m.Spinner.Style = lipgloss.NewStyle().Foreground(m.Theme.Purple)
+
+				// Update table styles if they exist
+				updateTableStyles := func(t *table.Model) {
+					if t == nil {
+						return
+					}
+					s := table.DefaultStyles()
+					s.Header = m.Styles.TableHeader.
+						BorderStyle(lipgloss.NormalBorder()).
+						BorderForeground(m.Theme.Bg2).
+						BorderBottom(true)
+					s.Selected = m.Styles.TableSelected
+					s.Cell = m.Styles.TableCell
+					t.SetStyles(s)
+				}
+				updateTableStyles(&m.Table)
+				updateTableStyles(&m.DebugTable)
+
+				return m, nil
 			}
 		}
 

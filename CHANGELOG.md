@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [v0.1.2] - 2026-01-19
+
+### Added
+- **UI:** Support for Flexoki color scheme (Dark and Light modes).
+- **UI:** Dynamic theme toggling with 'T' key.
+- **UI:** Auto-detect system/terminal theme at startup.
+
+### Changed
+- **UI:** Refactored styling system to support dynamic themes across all components.
+
+
+
 ## [v0.1.1] - 2025-12-25
 
 ### Added
