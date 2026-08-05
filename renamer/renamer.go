@@ -1,6 +1,8 @@
 package renamer
 
 import (
+	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -12,72 +14,72 @@ type FileAction struct {
 	IsError      bool
 	IsDuplicate  bool
 	IsSkipped    bool
+	Error        string
 }
 
 // ScanFiles walks the input folder and generates a list of FileAction for all valid images.
 // It does not check for duplicates against the output folder, only generates the new names based on metadata.
 func ScanFiles(inputFolder string) ([]FileAction, error) {
-	var actions []FileAction
+	return ScanFilesWithExtractor(context.Background(), inputFolder, ExifTool{})
+}
 
-	imageEndings := []string{
-		".jpg", ".JPG",
-		".jpeg", ".JPEG",
-		".png", ".PNG",
-		".gif", ".GIF",
-		".bmp", ".BMP",
-		".tiff", ".TIFF",
-		".tif", ".TIF",
-		".webp", ".WEBP",
-		".heif", ".HEIF",
-		".heic", ".HEIC",
-		".arw", ".ARW",
-		".cr2", ".CR2",
-		".cr3", ".CR3",
-		".dng", ".DNG",
-		".nef", ".NEF",
-		".rw2", ".RW2",
-		".sr2", ".SR2",
-		".srw", ".SRW",
-	}
-
+func ScanFilesWithExtractor(ctx context.Context, inputFolder string, extractor MetadataExtractor) ([]FileAction, error) {
+	var paths []string
 	err := filepath.Walk(inputFolder, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
-
-		if !info.IsDir() {
-			if !strings.Contains(path, "@eaDir") && !strings.Contains(path, "Thumbs.db") &&
-				!strings.Contains(path, "desktop.ini") && !strings.Contains(path, ".DS_Store") &&
-				!strings.Contains(path, "._") && !strings.Contains(path, "._.") &&
-				!strings.Contains(path, "Syno") && !strings.Contains(path, "syno") &&
-				!strings.Contains(path, "SYNO") && !strings.Contains(path, "Synology") &&
-				!strings.Contains(path, "thumb") && !strings.Contains(path, "Thumb") &&
-				!strings.Contains(path, "THUMB") && !strings.Contains(path, "Thumbnails") {
-				for _, ending := range imageEndings {
-					if strings.HasSuffix(path, ending) {
-						action := FileAction{
-							OriginalPath: path,
-						}
-						// CREATE NEW FILENAME
-						newFileName := Image(path)
-						action.NewName = newFileName
-
-						if strings.Contains(newFileName, "error") {
-							action.IsError = true
-						}
-
-						actions = append(actions, action)
-						break
-					}
-				}
-			}
+		if info.IsDir() || excludedPath(path) || !supportedExtension(filepath.Ext(path)) {
+			return nil
 		}
+		paths = append(paths, path)
 		return nil
 	})
 	if err != nil {
 		return nil, err
 	}
+	metadata, err := extractor.Extract(ctx, paths)
+	if err != nil {
+		return nil, err
+	}
+	if len(metadata) != len(paths) {
+		return nil, fmt.Errorf("metadata extractor returned %d records for %d files", len(metadata), len(paths))
+	}
+	actions := make([]FileAction, 0, len(paths))
+	for index, path := range paths {
+		item := metadata[index]
+		action := FileAction{OriginalPath: path, NewName: filenameFor(item, path)}
+		if item.Err != nil {
+			action.IsError = true
+			action.Error = item.Err.Error()
+		} else if strings.Contains(action.NewName, "error") {
+			action.IsError = true
+			action.Error = action.NewName
+		}
+		actions = append(actions, action)
+	}
 	return actions, nil
+}
+
+func supportedExtension(extension string) bool {
+	switch strings.ToLower(extension) {
+	case ".jpg", ".jpeg", ".png", ".gif", ".bmp", ".tiff", ".tif", ".webp",
+		".heif", ".heic", ".arw", ".cr2", ".cr3", ".dng", ".nef", ".rw2", ".sr2", ".srw",
+		".mov", ".mp4":
+		return true
+	default:
+		return false
+	}
+}
+
+func excludedPath(path string) bool {
+	lower := strings.ToLower(path)
+	for _, fragment := range []string{"@eadir", "thumbs.db", "desktop.ini", ".ds_store", "._", "syno", "thumb"} {
+		if strings.Contains(lower, fragment) {
+			return true
+		}
+	}
+	return false
 }
 
 func PreviewRename(inputFolder, outputFolder string) ([]FileAction, error) {

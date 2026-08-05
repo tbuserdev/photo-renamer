@@ -1,10 +1,22 @@
 package renamer
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 )
+
+type testExtractor struct{}
+
+func (testExtractor) Extract(_ context.Context, paths []string) ([]Metadata, error) {
+	items := make([]Metadata, len(paths))
+	for index, path := range paths {
+		items[index] = Metadata{SourceFile: path, CaptureTime: time.Date(2024, 1, 2, 3, 4, 5, 0, time.UTC), Make: "Test", Model: "Camera"}
+	}
+	return items, nil
+}
 
 func TestScanFiles_IgnoresExcludedDirectories(t *testing.T) {
 	// Create a temp directory structure
@@ -40,7 +52,7 @@ func TestScanFiles_IgnoresExcludedDirectories(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	actions, err := ScanFiles(tmpDir)
+	actions, err := ScanFilesWithExtractor(context.Background(), tmpDir, testExtractor{})
 	if err != nil {
 		t.Fatalf("ScanFiles failed: %v", err)
 	}
@@ -68,7 +80,7 @@ func TestScanFiles_ValidExtensions(t *testing.T) {
 	}
 	defer os.RemoveAll(tmpDir)
 
-	files := []string{"test.jpg", "test.PNG", "test.arw", "test.txt", "test.pdf"}
+	files := []string{"test.jpg", "test.PNG", "test.arw", "clip.MOV", "clip.mp4", "test.txt", "test.pdf"}
 	for _, f := range files {
 		path := filepath.Join(tmpDir, f)
 		if err := os.WriteFile(path, []byte("data"), 0644); err != nil {
@@ -76,12 +88,12 @@ func TestScanFiles_ValidExtensions(t *testing.T) {
 		}
 	}
 
-	actions, err := ScanFiles(tmpDir)
+	actions, err := ScanFilesWithExtractor(context.Background(), tmpDir, testExtractor{})
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	expectedCount := 3 // jpg, PNG, arw
+	expectedCount := 5 // jpg, PNG, arw, MOV, mp4
 	if len(actions) != expectedCount {
 		t.Errorf("Expected %d files, got %d", expectedCount, len(actions))
 	}
