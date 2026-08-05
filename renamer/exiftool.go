@@ -54,6 +54,7 @@ func (e ExifTool) Extract(ctx context.Context, paths []string) ([]Metadata, erro
 	}
 	args = append(args, paths...)
 	output, err := exec.CommandContext(ctx, path, args...).CombinedOutput()
+	items, outputErr := validateExifToolOutput(output, len(paths))
 	if err != nil {
 		if ctxErr := ctx.Err(); ctxErr != nil {
 			return nil, ctxErr
@@ -61,7 +62,7 @@ func (e ExifTool) Extract(ctx context.Context, paths []string) ([]Metadata, erro
 		if errors.Is(err, exec.ErrNotFound) || strings.Contains(err.Error(), "no such file") {
 			return nil, fmt.Errorf("ExifTool is required but was not found; install ExifTool and ensure `exiftool` is on PATH: %w", err)
 		}
-		if items, parseErr := parseExifToolJSON(output); parseErr == nil && len(items) == len(paths) && hasPerFileError(items) {
+		if outputErr == nil && hasPerFileError(items) {
 			return items, nil
 		}
 		detail := strings.TrimSpace(string(output))
@@ -70,12 +71,19 @@ func (e ExifTool) Extract(ctx context.Context, paths []string) ([]Metadata, erro
 		}
 		return nil, fmt.Errorf("ExifTool failed: %s", detail)
 	}
+	if outputErr != nil {
+		return nil, outputErr
+	}
+	return items, nil
+}
+
+func validateExifToolOutput(output []byte, expected int) ([]Metadata, error) {
 	items, err := parseExifToolJSON(output)
 	if err != nil {
 		return nil, fmt.Errorf("ExifTool produced unusable output; verify the ExifTool installation and version: %w", err)
 	}
-	if len(items) != len(paths) {
-		return nil, fmt.Errorf("ExifTool returned partial JSON; verify the ExifTool installation and input files: got %d records for %d files", len(items), len(paths))
+	if len(items) != expected {
+		return nil, fmt.Errorf("ExifTool returned partial JSON; verify the ExifTool installation and input files: got %d records for %d files", len(items), expected)
 	}
 	return items, nil
 }
