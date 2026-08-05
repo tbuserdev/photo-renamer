@@ -105,41 +105,6 @@ func editedMetadata(metadata Metadata) string {
 	return ""
 }
 
-// The JSON helpers remain for compatibility with the package's original tests.
-func legacyMetadata(data string) Metadata {
-	var values map[string]string
-	_ = json.Unmarshal([]byte(data), &values)
-	result := Metadata{Make: values["Make"], Model: values["Model"], Software: values["Software"]}
-	for _, key := range []string{"DateTimeOriginal", "DateTimeDigitized", "DateTime"} {
-		if values[key] == "" {
-			continue
-		}
-		result.CaptureTime, _ = parseMetadataTime(values[key], false)
-		break
-	}
-	return result
-}
-
-func date(data string) string {
-	value := legacyMetadata(data).CaptureTime
-	if value.IsZero() {
-		return ""
-	}
-	return value.Format("2006-01-02_15-04-05")
-}
-
-func model(data string) string { return normalizedModel(legacyMetadata(data).Model) }
-
-func maker(data string) string {
-	value := legacyMetadata(data).Make
-	if value == "" {
-		return "Unknown"
-	}
-	return value
-}
-
-func edited(data string) string { return editedMetadata(legacyMetadata(data)) }
-
 func OpenOutputFolder(folder string) (err error) {
 	switch runtime.GOOS {
 	case "darwin":

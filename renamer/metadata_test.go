@@ -1,106 +1,36 @@
 package renamer
 
 import (
-	"strings"
 	"testing"
+	"time"
 )
 
-// Helper function to create a mock JSON string mimicking what gjson expects
-func createMockJSON(date, make, model, software string) string {
-	// Simple JSON construction
-	parts := []string{}
-	if date != "" {
-		parts = append(parts, `"DateTimeOriginal": "`+date+`"`)
-	}
-	if make != "" {
-		parts = append(parts, `"Make": "`+make+`"`)
-	}
-	if model != "" {
-		parts = append(parts, `"Model": "`+model+`"`)
-	}
-	if software != "" {
-		parts = append(parts, `"Software": "`+software+`"`)
-	}
-	return "{" + strings.Join(parts, ", ") + "}"
-}
-
-func TestDate(t *testing.T) {
+func TestFilenameForMetadata(t *testing.T) {
+	captured := time.Date(2023, 4, 19, 19, 17, 54, 0, time.UTC)
 	tests := []struct {
-		input    string
+		name     string
+		metadata Metadata
 		expected string
 	}{
-		{createMockJSON("2023:04:19 19:17:54", "", "", ""), "2023-04-19_19-17-54"},
-		{createMockJSON("", "", "", ""), ""},
+		{"original", Metadata{CaptureTime: captured, Make: "Canon", Model: "EOS R5"}, "2023-04-19_19-17-54_Canon-EOS R5_Original.jpg"},
+		{"camera software", Metadata{CaptureTime: captured, Make: "SONY", Model: "ILCE-7M3", Software: "ILCE-7M3 v2"}, "2023-04-19_19-17-54_SONY-ILCE-7M3.jpg"},
+		{"edited", Metadata{CaptureTime: captured, Make: "Google", Model: "Pixel 6 (US)", Software: "Adobe Photoshop"}, "2023-04-19_19-17-54_Google-Pixel 6 _Photoshop.jpg"},
+		{"unknown camera", Metadata{CaptureTime: captured}, "2023-04-19_19-17-54_Unknown-Unknown_Original.jpg"},
 	}
-
 	for _, test := range tests {
-		result := date(test.input)
-		if result != test.expected {
-			t.Errorf("date(%s) = %s; want %s", test.input, result, test.expected)
-		}
+		t.Run(test.name, func(t *testing.T) {
+			if got := filenameFor(test.metadata, "photo.jpg"); got != test.expected {
+				t.Fatalf("filename = %q; want %q", got, test.expected)
+			}
+		})
 	}
 }
 
-func TestModel(t *testing.T) {
-	tests := []struct {
-		input    string
-		expected string
-	}{
-		{createMockJSON("", "", "Canon EOS 5D Mark IV", ""), "Canon EOS 5D Mark IV"},
-		{createMockJSON("", "", "ILCE-7M3", ""), "ILCE-7M3"},
-		{createMockJSON("", "", "Pixel 6 (US)", ""), "Pixel 6 "}, // Expects truncation before '('
-		{createMockJSON("", "", "", ""), "Unknown"},
+func TestFilenameForMetadataErrors(t *testing.T) {
+	if got := filenameFor(Metadata{}, "photo.jpg"); got != "DATE_error" {
+		t.Fatalf("missing date = %q", got)
 	}
-
-	for _, test := range tests {
-		result := model(test.input)
-		if result != test.expected {
-			t.Errorf("model(%s) = %s; want %s", test.input, result, test.expected)
-		}
+	if got := filenameFor(Metadata{CaptureTime: time.Now()}, "photo"); got != "FILEEXT_error" {
+		t.Fatalf("missing extension = %q", got)
 	}
 }
-
-func TestMaker(t *testing.T) {
-	tests := []struct {
-		input    string
-		expected string
-	}{
-		{createMockJSON("", "Canon", "", ""), "Canon"},
-		{createMockJSON("", "SONY", "", ""), "SONY"},
-		{createMockJSON("", "", "", ""), "Unknown"},
-	}
-
-	for _, test := range tests {
-		result := maker(test.input)
-		if result != test.expected {
-			t.Errorf("maker(%s) = %s; want %s", test.input, result, test.expected)
-		}
-	}
-}
-
-func TestEdited(t *testing.T) {
-	tests := []struct {
-		input    string
-		expected string
-	}{
-		// Software contains Model -> returns Model
-		{createMockJSON("", "", "ILCE-7M3", "ILCE-7M3 v2.0"), "ILCE-7M3"},
-		// Software contains "Adobe Lightroom" -> returns "Lightroom"
-		{createMockJSON("", "", "Canon", "Adobe Lightroom Classic 10.0"), "Lightroom"},
-		// Software contains "Ver.1.0" -> returns Model
-		{createMockJSON("", "", "Nikon Z6", "Ver.1.01"), "Nikon Z6"},
-		// No match -> returns ""
-		{createMockJSON("", "", "Camera", "Unknown Software"), ""},
-	}
-
-	for _, test := range tests {
-		result := edited(test.input)
-		if result != test.expected {
-			t.Errorf("edited(%s) = %s; want %s", test.input, result, test.expected)
-		}
-	}
-}
-
-// Note: TestImage function is harder to unit test directly because it calls openJson which reads a real file.
-// We can skip it here and rely on the manual tests or refactor the code later to accept an interface for file reading.
-// For now, testing the private helper functions covers the logic complexity.

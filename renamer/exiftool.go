@@ -69,10 +69,10 @@ func (e ExifTool) Extract(ctx context.Context, paths []string) ([]Metadata, erro
 	}
 	items, err := parseExifToolJSON(output)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("ExifTool produced unusable output; verify the ExifTool installation and version: %w", err)
 	}
 	if len(items) != len(paths) {
-		return nil, fmt.Errorf("ExifTool returned partial JSON: got %d records for %d files", len(items), len(paths))
+		return nil, fmt.Errorf("ExifTool returned partial JSON; verify the ExifTool installation and input files: got %d records for %d files", len(items), len(paths))
 	}
 	return items, nil
 }
@@ -106,7 +106,17 @@ func parseExifToolJSON(data []byte) ([]Metadata, error) {
 func captureTime(record map[string]any, video bool) (time.Time, string, error) {
 	var candidates []string
 	if video {
-		candidates = []string{"QuickTime:CreationDate", "Keys:CreationDate", "QuickTime:CreateDate", "QuickTime:MediaCreateDate", "QuickTime:TrackCreateDate"}
+		for _, key := range []string{"QuickTime:CreationDate", "Keys:CreationDate"} {
+			value := stringTag(record, key)
+			if value == "" || !hasExplicitTimezone(value) {
+				continue
+			}
+			parsed, err := parseMetadataTime(value, true)
+			if err == nil {
+				return parsed, key, nil
+			}
+		}
+		candidates = []string{"QuickTime:CreateDate", "QuickTime:MediaCreateDate", "QuickTime:TrackCreateDate"}
 	} else {
 		candidates = []string{"EXIF:DateTimeOriginal", "XMP:DateTimeOriginal", "QuickTime:CreationDate", "Keys:CreationDate", "EXIF:CreateDate", "XMP:CreateDate", "QuickTime:CreateDate"}
 	}
@@ -122,6 +132,18 @@ func captureTime(record map[string]any, video bool) (time.Time, string, error) {
 		return parsed, key, nil
 	}
 	return time.Time{}, "", ErrCaptureTimeMissing
+}
+
+func hasExplicitTimezone(value string) bool {
+	value = strings.TrimSpace(value)
+	if strings.HasSuffix(value, "Z") {
+		return true
+	}
+	if len(value) < 6 {
+		return false
+	}
+	suffix := value[len(value)-6:]
+	return (suffix[0] == '+' || suffix[0] == '-') && suffix[3] == ':'
 }
 
 func parseMetadataTime(value string, quickTime bool) (time.Time, error) {

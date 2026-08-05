@@ -31,7 +31,7 @@ func TestParseExifToolJSONPreservesGroupedTagsAndOffset(t *testing.T) {
 }
 
 func TestVideoTimestampPrecedenceAndQuickTimeUTC(t *testing.T) {
-	input := `[{"SourceFile":"clip.mov","File:FileType":"MOV","QuickTime:CreationDate":"2024:06:01 12:00:00+02:00","QuickTime:CreateDate":"2024:06:01 10:00:00","QuickTime:MediaCreateDate":"2024:06:01 09:00:00"},{"SourceFile":"clip.mp4","File:FileType":"MP4","QuickTime:CreateDate":"2024:06:01 10:00:00"}]`
+	input := `[{"SourceFile":"clip.mov","File:FileType":"MOV","QuickTime:CreationDate":"2024:06:01 12:00:00+02:00","QuickTime:CreateDate":"2024:06:01 10:00:00","QuickTime:MediaCreateDate":"2024:06:01 09:00:00"},{"SourceFile":"clip.mp4","File:FileType":"MP4","QuickTime:CreationDate":"2024:06:01 08:00:00","QuickTime:CreateDate":"2024:06:01 10:00:00"}]`
 
 	items, err := parseExifToolJSON([]byte(input))
 	if err != nil {
@@ -42,6 +42,22 @@ func TestVideoTimestampPrecedenceAndQuickTimeUTC(t *testing.T) {
 	}
 	if items[1].CaptureTime.Location() != time.UTC || items[1].CaptureTime.Format(time.RFC3339) != "2024-06-01T10:00:00Z" {
 		t.Fatalf("timezone-less QuickTime date not interpreted as UTC: %#v", items[1])
+	}
+}
+
+func TestRepresentativePhoneAndCameraMetadata(t *testing.T) {
+	input := `[{"SourceFile":"iphone.heic","File:FileType":"HEIC","EXIF:DateTimeOriginal":"2024:01:02 03:04:05-08:00","EXIF:Make":"Apple","EXIF:Model":"iPhone 15"},{"SourceFile":"iphone.mov","File:FileType":"MOV","Keys:CreationDate":"2024:01:02 03:04:05-08:00","QuickTime:Make":"Apple","QuickTime:Model":"iPhone 15"},{"SourceFile":"android.heif","File:FileType":"HEIF","EXIF:DateTimeOriginal":"2024:02:03 04:05:06+01:00","EXIF:Make":"Google","EXIF:Model":"Pixel 8"},{"SourceFile":"android.mp4","File:FileType":"MP4","QuickTime:CreateDate":"2024:02:03 03:05:06","QuickTime:Make":"Google","QuickTime:Model":"Pixel 8"},{"SourceFile":"camera.mov","File:FileType":"MOV","QuickTime:MediaCreateDate":"2024:03:04 05:06:07","QuickTime:Make":"SONY","QuickTime:Model":"ILCE-7M4"}]`
+	items, err := parseExifToolJSON([]byte(input))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for index, item := range items {
+		if item.Err != nil || item.CaptureTime.IsZero() {
+			t.Fatalf("fixture %d did not normalize: %#v", index, item)
+		}
+		if got := filenameFor(item, item.SourceFile); strings.Contains(got, "error") {
+			t.Fatalf("fixture %d did not produce filename: %s", index, got)
+		}
 	}
 }
 
@@ -128,6 +144,24 @@ func TestExifToolReportsProcessFailureAndPartialOutput(t *testing.T) {
 	_, err := (ExifTool{Path: partial}).Extract(context.Background(), []string{"one.mov", "two.mov"})
 	if err == nil || !strings.Contains(err.Error(), "partial JSON") {
 		t.Fatalf("partial output error = %v", err)
+	}
+}
+
+func TestExifToolReturnsCorruptInputAsPerFileError(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("shell fixture is Unix-only")
+	}
+	script := filepath.Join(t.TempDir(), "corrupt-exiftool")
+	body := "#!/bin/sh\nprintf '[{\"SourceFile\":\"good.mov\",\"File:FileType\":\"MOV\",\"QuickTime:CreateDate\":\"2024:01:02 03:04:05\"},{\"SourceFile\":\"bad.mov\",\"ExifTool:Error\":\"File format error\"}]'\n"
+	if err := os.WriteFile(script, []byte(body), 0755); err != nil {
+		t.Fatal(err)
+	}
+	items, err := (ExifTool{Path: script}).Extract(context.Background(), []string{"good.mov", "bad.mov"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if items[0].Err != nil || items[1].Err == nil || !strings.Contains(items[1].Err.Error(), "File format error") {
+		t.Fatalf("unexpected batch result: %#v", items)
 	}
 }
 

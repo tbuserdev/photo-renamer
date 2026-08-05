@@ -72,8 +72,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		var rows []table.Row
 		for _, action := range msg {
 			status := "OK"
+			displayName := action.NewName
 			if action.IsError {
 				status = "ERROR"
+				if action.Error != "" {
+					displayName = action.Error
+				}
 			} else if action.IsSkipped {
 				status = "SKIPPED"
 				m.OriginalFiles++
@@ -83,7 +87,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			rows = append(rows, table.Row{
 				status,
 				filepath.Base(action.OriginalPath),
-				action.NewName,
+				displayName,
 			})
 		}
 

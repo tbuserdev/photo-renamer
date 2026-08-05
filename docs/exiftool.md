@@ -24,7 +24,7 @@ Still timestamps use this precedence:
 
 Video timestamps use this separate precedence:
 
-1. timezone-bearing QuickTime or Keys `CreationDate`
+1. timezone-bearing QuickTime or Keys `CreationDate` (timezone-less values at this tier are ignored)
 2. QuickTime `CreateDate`
 3. QuickTime `MediaCreateDate`
 4. QuickTime `TrackCreateDate`
