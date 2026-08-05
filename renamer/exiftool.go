@@ -61,6 +61,9 @@ func (e ExifTool) Extract(ctx context.Context, paths []string) ([]Metadata, erro
 		if errors.Is(err, exec.ErrNotFound) || strings.Contains(err.Error(), "no such file") {
 			return nil, fmt.Errorf("ExifTool is required but was not found; install ExifTool and ensure `exiftool` is on PATH: %w", err)
 		}
+		if items, parseErr := parseExifToolJSON(output); parseErr == nil && len(items) == len(paths) && hasPerFileError(items) {
+			return items, nil
+		}
 		detail := strings.TrimSpace(string(output))
 		if detail == "" {
 			detail = err.Error()
@@ -75,6 +78,15 @@ func (e ExifTool) Extract(ctx context.Context, paths []string) ([]Metadata, erro
 		return nil, fmt.Errorf("ExifTool returned partial JSON; verify the ExifTool installation and input files: got %d records for %d files", len(items), len(paths))
 	}
 	return items, nil
+}
+
+func hasPerFileError(items []Metadata) bool {
+	for _, item := range items {
+		if item.Err != nil {
+			return true
+		}
+	}
+	return false
 }
 
 func parseExifToolJSON(data []byte) ([]Metadata, error) {
@@ -104,32 +116,36 @@ func parseExifToolJSON(data []byte) ([]Metadata, error) {
 }
 
 func captureTime(record map[string]any, video bool) (time.Time, string, error) {
-	var candidates []string
-	if video {
-		for _, key := range []string{"QuickTime:CreationDate", "Keys:CreationDate"} {
-			value := stringTag(record, key)
-			if value == "" || !hasExplicitTimezone(value) {
-				continue
-			}
-			parsed, err := parseMetadataTime(value, true)
-			if err == nil {
-				return parsed, key, nil
-			}
-		}
-		candidates = []string{"QuickTime:CreateDate", "QuickTime:MediaCreateDate", "QuickTime:TrackCreateDate"}
-	} else {
-		candidates = []string{"EXIF:DateTimeOriginal", "XMP:DateTimeOriginal", "QuickTime:CreationDate", "Keys:CreationDate", "EXIF:CreateDate", "XMP:CreateDate", "QuickTime:CreateDate"}
+	type candidate struct {
+		key              string
+		quickTime        bool
+		requiresTimezone bool
 	}
-	for _, key := range candidates {
-		value := stringTag(record, key)
-		if value == "" {
+	var candidates []candidate
+	if video {
+		candidates = []candidate{
+			{"QuickTime:CreationDate", true, true}, {"Keys:CreationDate", false, true},
+			{"QuickTime:CreateDate", true, false}, {"QuickTime:MediaCreateDate", true, false},
+			{"QuickTime:TrackCreateDate", true, false},
+		}
+	} else {
+		candidates = []candidate{
+			{"EXIF:DateTimeOriginal", false, false}, {"XMP:DateTimeOriginal", false, false},
+			{"QuickTime:CreationDate", true, false}, {"Keys:CreationDate", false, false},
+			{"EXIF:CreateDate", false, false}, {"XMP:CreateDate", false, false},
+			{"QuickTime:CreateDate", true, false},
+		}
+	}
+	for _, candidate := range candidates {
+		value := stringTag(record, candidate.key)
+		if value == "" || (candidate.requiresTimezone && !hasExplicitTimezone(value)) {
 			continue
 		}
-		parsed, err := parseMetadataTime(value, strings.HasPrefix(key, "QuickTime:"))
+		parsed, err := parseMetadataTime(value, candidate.quickTime)
 		if err != nil {
 			continue
 		}
-		return parsed, key, nil
+		return parsed, candidate.key, nil
 	}
 	return time.Time{}, "", ErrCaptureTimeMissing
 }

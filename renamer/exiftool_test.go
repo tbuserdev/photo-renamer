@@ -152,7 +152,7 @@ func TestExifToolReturnsCorruptInputAsPerFileError(t *testing.T) {
 		t.Skip("shell fixture is Unix-only")
 	}
 	script := filepath.Join(t.TempDir(), "corrupt-exiftool")
-	body := "#!/bin/sh\nprintf '[{\"SourceFile\":\"good.mov\",\"File:FileType\":\"MOV\",\"QuickTime:CreateDate\":\"2024:01:02 03:04:05\"},{\"SourceFile\":\"bad.mov\",\"ExifTool:Error\":\"File format error\"}]'\n"
+	body := "#!/bin/sh\nprintf '[{\"SourceFile\":\"good.mov\",\"File:FileType\":\"MOV\",\"QuickTime:CreateDate\":\"2024:01:02 03:04:05\"},{\"SourceFile\":\"bad.mov\",\"ExifTool:Error\":\"File format error\"}]'\nexit 1\n"
 	if err := os.WriteFile(script, []byte(body), 0755); err != nil {
 		t.Fatal(err)
 	}
