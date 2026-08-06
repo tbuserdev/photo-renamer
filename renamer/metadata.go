@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"os/exec"
 	"path/filepath"
 	"runtime"
@@ -99,11 +98,14 @@ func editedMetadata(metadata Metadata) string {
 func OpenOutputFolder(folder string) (err error) {
 	switch runtime.GOOS {
 	case "darwin":
-		err = exec.Command("open", "-R", folder).Run()
+		err = exec.Command("open", folder).Run()
 	case "windows":
-		err = exec.Command("explorer", "/select,", folder).Run()
+		err = exec.Command("explorer", folder).Run()
 	default:
-		log.Printf("unsupported operating system")
+		err = exec.Command("xdg-open", folder).Run()
 	}
-	return err
+	if err != nil {
+		return fmt.Errorf("open output folder: %w", err)
+	}
+	return nil
 }

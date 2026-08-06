@@ -1,6 +1,6 @@
 # Photo Renamer
 
-A powerful and simple TUI (Terminal User Interface) tool built in Go for automated photo renaming and organization. This tool extracts EXIF metadata from your images to create descriptive, standardized filenames and organizes them into your preferred directory structure.
+A focused desktop app built in Go for automated photo renaming and organization. It previews every proposed change, extracts EXIF metadata to create standardized filenames, and keeps duplicates and metadata errors in dedicated review folders.
 
 ## 🚀 Features
 
@@ -8,9 +8,12 @@ A powerful and simple TUI (Terminal User Interface) tool built in Go for automat
 - **Smart Metadata Detection**: Detects if an image has been edited (e.g., via Lightroom) and includes that in the filename.
 - **Content-Based Duplicate Handling**: Uses SHA-256 when filenames collide. Byte-identical files move to `DUPLICATES`; different files are preserved with `_2`, `_3`, and later suffixes.
 - **Error Management**: Moves files with missing or corrupt metadata to an `ERROR-OUTPUT` folder for manual review.
-- **Progress Tracking**: Real-time progress bar shows the status of your renaming task.
+- **Guided Desktop Workflow**: Choose a folder, review every action, then confirm once.
+- **Flexible Review Table**: Resize the window and drag column dividers to fit long filenames.
+- **Native Dialogs**: Uses the operating system's folder picker and confirmation dialogs.
+- **Progress Tracking**: Real-time progress shows the status of your renaming task.
 - **Multi-Format Support**: Supports a wide range of formats including JPG, PNG, GIF, BMP, TIFF, WebP, HEIF/HEIC, MOV, MP4, and various RAW formats (ARW, CR2, CR3, DNG, NEF, RW2, SR2, SRW).
-- **Cross-Platform**: Built with [Bubble Tea](https://github.com/charmbracelet/bubbletea), ensuring a beautiful terminal experience on macOS, Linux, and Windows.
+- **Cross-Platform**: Built with [Fyne](https://fyne.io/) for macOS, Linux, and Windows. The original Bubble Tea interface remains available for terminal users.
 
 ## 📸 Renaming Logic
 
@@ -56,28 +59,39 @@ go mod download
 
 ## 🖥 Usage
 
-### Running the Application
+### Running the Desktop Application
 
 **1. Using the Downloaded Binary:**
-   - Double-click the `photo-renamer` executable.
-   - On **macOS/Linux**, you can also run it from the terminal: `./photo-renamer`
+   - Open the packaged application or double-click `photo-renamer.exe` on Windows.
+   - On **macOS/Linux**, an unpackaged binary can also be run from a terminal: `./photo-renamer`
 
 **2. Running from Source (Developers):**
 ```bash
 go run .
 ```
 
-### Controls & Workflow
+### Workflow
 
-- **Select Input Folder**: Navigate through directories using the **Arrow Keys**. Press **Enter** to select the currently highlighted directory as your source folder.
-- **Review Preview**: A table will appear showing the proposed filename changes and identifying any duplicates or errors.
-- **Confirm Rename**: Press **Enter** to confirm and start the renaming process.
-- **Exit**: Press **Esc** or **Ctrl+C** to quit the application at any time.
+1. Choose a photo folder with the native system picker.
+2. Review the proposed names and the destination of duplicates or errors.
+3. Confirm the batch in the native system dialog.
+4. Keep the app open while the progress indicator completes.
+
+No files are changed during scanning or preview. During processing, errors move to `ERROR-OUTPUT` and exact duplicates move to `DUPLICATES` inside the selected folder.
+
+### Terminal Interface
+
+The original terminal interface remains available from source:
+
+```bash
+go run ./cmd/photo-renamer-tui
+```
 
 ## 📜 Dependencies
 
-- [Bubble Tea](https://github.com/charmbracelet/bubbletea): A powerful, functional TUI framework.
-- [Lip Gloss](https://github.com/charmbracelet/lipgloss): Style definitions for nice terminal layouts.
+- [Fyne](https://fyne.io/): Cross-platform desktop UI framework.
+- [sqweek/dialog](https://github.com/sqweek/dialog): Native folder and confirmation dialogs.
+- [Bubble Tea](https://github.com/charmbracelet/bubbletea) and [Lip Gloss](https://github.com/charmbracelet/lipgloss): Optional terminal interface.
 - [ExifTool](https://exiftool.org/): Group-aware metadata extraction for still images, RAW files, HEIC/HEIF, MOV, and MP4. It is an external runtime dependency and is not bundled in releases.
 
 ## 🤝 Contributing
