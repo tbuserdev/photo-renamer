@@ -50,15 +50,16 @@ func filenameFor(metadata Metadata, originalPath string) string {
 	}
 	modelName := normalizedModel(metadata.Model)
 	makerName := metadata.Make
-	if makerName == "" {
-		makerName = "Unknown"
-	}
 	editor := editedMetadata(metadata)
-	if editor == "" {
-		editor = "Original"
+	base := metadata.CaptureTime.Format("2006-01-02_15-04-05")
+	if makerName != "" && modelName != "" {
+		base += "_" + makerName + "-" + modelName
+	} else if makerName != "" {
+		base += "_" + makerName
+	} else if modelName != "" {
+		base += "_" + modelName
 	}
-	base := metadata.CaptureTime.Format("2006-01-02_15-04-05") + "_" + makerName + "-" + modelName
-	if editor != modelName {
+	if editor != "" {
 		base += "_" + editor
 	}
 	return base + ext
@@ -75,9 +76,6 @@ func Image(file string) string {
 }
 
 func normalizedModel(value string) string {
-	if value == "" {
-		return "Unknown"
-	}
 	if index := strings.Index(value, "("); index >= 0 {
 		return value[:index]
 	}
@@ -85,11 +83,7 @@ func normalizedModel(value string) string {
 }
 
 func editedMetadata(metadata Metadata) string {
-	modelName := normalizedModel(metadata.Model)
 	software := metadata.Software
-	if strings.Contains(software, modelName) {
-		return modelName
-	}
 	if strings.Contains(software, "Lightroom") || strings.Contains(software, "Adobe Photoshop Lightroom Classic") {
 		return "Lightroom"
 	}
@@ -98,9 +92,6 @@ func editedMetadata(metadata Metadata) string {
 	}
 	if strings.Contains(software, "Photomator") {
 		return "Photomator"
-	}
-	if strings.Contains(software, "Ver.1.0") {
-		return modelName
 	}
 	return ""
 }

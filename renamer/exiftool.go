@@ -1,12 +1,14 @@
 package renamer
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 )
@@ -50,10 +52,13 @@ func (e ExifTool) Extract(ctx context.Context, paths []string) ([]Metadata, erro
 	args := []string{
 		"-j", "-G1", "-a", "-api", "QuickTimeUTC=1",
 		"-FileType", "-FileTypeExtension", "-DateTimeOriginal", "-CreateDate",
-		"-CreationDate", "-MediaCreateDate", "-TrackCreateDate", "-Make", "-Model", "-Software", "--",
+		"-CreationDate", "-MediaCreateDate", "-TrackCreateDate", "-FileModifyDate", "-Make", "-Model", "-Software", "--",
 	}
 	args = append(args, paths...)
-	output, err := exec.CommandContext(ctx, path, args...).CombinedOutput()
+	command := exec.CommandContext(ctx, path, args...)
+	var stderr bytes.Buffer
+	command.Stderr = &stderr
+	output, err := command.Output()
 	items, outputErr := validateExifToolOutput(output, len(paths))
 	if err != nil {
 		if ctxErr := ctx.Err(); ctxErr != nil {
@@ -65,9 +70,12 @@ func (e ExifTool) Extract(ctx context.Context, paths []string) ([]Metadata, erro
 		if outputErr == nil && hasPerFileError(items) {
 			return items, nil
 		}
-		detail := strings.TrimSpace(string(output))
+		detail := strings.TrimSpace(stderr.String())
 		if detail == "" {
-			detail = err.Error()
+			detail = strings.TrimSpace(string(output))
+			if detail == "" {
+				detail = err.Error()
+			}
 		}
 		return nil, fmt.Errorf("ExifTool failed: %s", detail)
 	}
@@ -108,9 +116,9 @@ func parseExifToolJSON(data []byte) ([]Metadata, error) {
 			SourceFile:    stringTag(record, "SourceFile"),
 			FileType:      firstTag(record, "File:FileType", "FileType"),
 			FileExtension: firstTag(record, "File:FileTypeExtension", "FileTypeExtension"),
-			Make:          groupedTag(record, "Make", "EXIF", "QuickTime", "XMP"),
-			Model:         groupedTag(record, "Model", "EXIF", "QuickTime", "XMP"),
-			Software:      groupedTag(record, "Software", "EXIF", "XMP", "QuickTime"),
+			Make:          groupedTag(record, "Make", "IFD0", "ExifIFD", "EXIF", "QuickTime", "XMP", "XMP-tiff"),
+			Model:         groupedTag(record, "Model", "IFD0", "ExifIFD", "EXIF", "QuickTime", "XMP", "XMP-tiff"),
+			Software:      groupedTag(record, "Software", "IFD0", "ExifIFD", "EXIF", "XMP", "XMP-xmp", "QuickTime"),
 		}
 		if message := groupedTag(record, "Error", "ExifTool", "File"); message != "" {
 			item.Err = fmt.Errorf("ExifTool could not read %s: %s", filepath.Base(item.SourceFile), message)
@@ -118,6 +126,9 @@ func parseExifToolJSON(data []byte) ([]Metadata, error) {
 			continue
 		}
 		item.CaptureTime, item.CaptureSource, item.Err = captureTime(record, isVideo(item.FileType, item.FileExtension, item.SourceFile))
+		if item.Err != nil {
+			item.CaptureTime, item.CaptureSource, item.Err = fallbackCaptureTime(record, item.SourceFile)
+		}
 		items = append(items, item)
 	}
 	return items, nil
@@ -138,9 +149,11 @@ func captureTime(record map[string]any, video bool) (time.Time, string, error) {
 		}
 	} else {
 		candidates = []candidate{
-			{"EXIF:DateTimeOriginal", false, false}, {"XMP:DateTimeOriginal", false, false},
+			{"ExifIFD:DateTimeOriginal", false, false}, {"EXIF:DateTimeOriginal", false, false},
+			{"XMP-exif:DateTimeOriginal", false, false}, {"XMP:DateTimeOriginal", false, false},
 			{"QuickTime:CreationDate", true, false}, {"Keys:CreationDate", false, false},
-			{"EXIF:CreateDate", false, false}, {"XMP:CreateDate", false, false},
+			{"ExifIFD:CreateDate", false, false}, {"EXIF:CreateDate", false, false},
+			{"XMP-xmp:CreateDate", false, false}, {"XMP:CreateDate", false, false},
 			{"QuickTime:CreateDate", true, false},
 		}
 	}
@@ -154,6 +167,23 @@ func captureTime(record map[string]any, video bool) (time.Time, string, error) {
 			continue
 		}
 		return parsed, candidate.key, nil
+	}
+	return time.Time{}, "", ErrCaptureTimeMissing
+}
+
+var filenameTimestamp = regexp.MustCompile(`(?:^|_)(\d{4}-\d{2}-\d{2})_(\d{2})(?:-?)(\d{2})(?:-?)(\d{2})(?:_|$)`)
+
+func fallbackCaptureTime(record map[string]any, sourceFile string) (time.Time, string, error) {
+	if match := filenameTimestamp.FindStringSubmatch(filepath.Base(sourceFile)); match != nil {
+		parsed, err := time.ParseInLocation("2006-01-02 15:04:05", match[1]+" "+match[2]+":"+match[3]+":"+match[4], time.Local)
+		if err == nil {
+			return parsed, "FileName", nil
+		}
+	}
+	if value := stringTag(record, "System:FileModifyDate"); value != "" {
+		if parsed, err := parseMetadataTime(value, false); err == nil {
+			return parsed, "System:FileModifyDate", nil
+		}
 	}
 	return time.Time{}, "", ErrCaptureTimeMissing
 }

@@ -16,7 +16,9 @@ A powerful and simple TUI (Terminal User Interface) tool built in Go for automat
 
 The tool generates filenames based on the following pattern:
 - **Standard**: `YYYY-MM-DD_HH-MM-SS_Maker-Model.ext`
-- **Edited**: `YYYY-MM-DD_HH-MM-SS_Maker-Model_Software.ext` (e.g., including "Lightroom")
+- **Edited**: `YYYY-MM-DD_HH-MM-SS_Maker-Model_Editor.ext` when Lightroom, Photoshop, or Photomator is explicitly detected
+
+Missing camera metadata and unrecognized software never add `Unknown` or `Original` placeholders.
 
 ## 📦 Installation
 
