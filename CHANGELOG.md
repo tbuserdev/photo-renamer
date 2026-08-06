@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.1.5] - 2026-08-06
+
+### Added
+- **GUI:** Added a guided Fyne desktop interface for choosing a photo folder, reviewing every proposed action, confirming the batch, tracking progress, and revealing the completed output.
+- **GUI:** Added native folder selection and confirmation dialogs, adaptive light and dark styling, and a resizable review table with draggable column dividers.
+- **Safety:** Added cancellable scanning and stale-plan validation using source fingerprints, destination checks, and atomic no-replace moves before applying the reviewed rename plan.
+- **Packaging:** Added native desktop application packages for macOS Intel and ARM, Windows AMD64, and Linux AMD64 and ARM64.
+- **Testing:** Added coverage for GUI presentation helpers, cancellation, progress reporting, stale sources and destinations, case-insensitive conflicts, and exact-plan execution.
+
+### Changed
+- **Application:** The Fyne desktop GUI is now the default application; the Bubble Tea terminal interface remains available through `cmd/photo-renamer-tui`.
+- **Workflow:** Processing now applies the exact reviewed plan and reports partial failures accurately when earlier files have already moved.
+- **Scanning:** Top-level `DUPLICATES` and `ERROR-OUTPUT` review folders are excluded without pruning similarly named folders nested in user albums.
+- **CI/CD:** Release artifacts are now built and packaged on native platform runners with a pinned Fyne toolchain.
+
+
+
 ## [v0.1.4] - 2026-08-06
 
 ### Added
