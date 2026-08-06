@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - **Metadata:** Added ExifTool-based, group-aware metadata extraction for supported photos, RAW files, HEIC/HEIF, MOV, and MP4 media.
 - **Metadata:** Added capture-time selection for video metadata, including timezone-aware QuickTime timestamps.
+- **Duplicates:** Added SHA-256 content checks for destination filename collisions.
 - **Testing:** Added coverage for ExifTool normalization, batch execution, timestamp parsing, dependency failures, partial or malformed output, and cancellation.
 
 ### Changed
@@ -18,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - **Metadata:** Preserve metadata failures for individual files rather than failing the entire scan when ExifTool returns usable per-file results.
+- **Duplicates:** Preserve different files with `_2`, `_3`, and later suffixes instead of treating matching generated filenames as proof of duplication.
 - **UI:** Show the underlying metadata error in the rename preview for files that cannot be processed.
 
 

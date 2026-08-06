@@ -6,7 +6,7 @@ A powerful and simple TUI (Terminal User Interface) tool built in Go for automat
 
 - **EXIF-Based Renaming**: Automatically renames files using the original capture date, camera make, and model.
 - **Smart Metadata Detection**: Detects if an image has been edited (e.g., via Lightroom) and includes that in the filename.
-- **Duplicate Handling**: Automatically detects and moves duplicate files to a dedicated `DUPLICATES` folder to prevent data loss or overwriting.
+- **Content-Based Duplicate Handling**: Uses SHA-256 when filenames collide. Byte-identical files move to `DUPLICATES`; different files are preserved with `_2`, `_3`, and later suffixes.
 - **Error Management**: Moves files with missing or corrupt metadata to an `ERROR-OUTPUT` folder for manual review.
 - **Progress Tracking**: Real-time progress bar shows the status of your renaming task.
 - **Multi-Format Support**: Supports a wide range of formats including JPG, PNG, GIF, BMP, TIFF, WebP, HEIF/HEIC, MOV, MP4, and various RAW formats (ARW, CR2, CR3, DNG, NEF, RW2, SR2, SRW).

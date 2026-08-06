@@ -98,3 +98,108 @@ func TestScanFiles_ValidExtensions(t *testing.T) {
 		t.Errorf("Expected %d files, got %d", expectedCount, len(actions))
 	}
 }
+
+func TestResolveCollisions_DifferentContentGetsSuffix(t *testing.T) {
+	inputDir := t.TempDir()
+	outputDir := t.TempDir()
+	existing := filepath.Join(outputDir, "2024-01-02_03-04-05_Test-Camera.jpg")
+	incoming := filepath.Join(inputDir, "incoming.jpg")
+	writeTestFile(t, existing, "existing photo")
+	writeTestFile(t, incoming, "different photo")
+
+	actions, err := resolveCollisions([]FileAction{{
+		OriginalPath: incoming,
+		NewName:      filepath.Base(existing),
+	}}, outputDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if actions[0].IsDuplicate {
+		t.Fatal("different content was classified as a duplicate")
+	}
+	if got, want := actions[0].NewName, "2024-01-02_03-04-05_Test-Camera_2.jpg"; got != want {
+		t.Fatalf("NewName = %q, want %q", got, want)
+	}
+}
+
+func TestResolveCollisions_IdenticalContentIsDuplicate(t *testing.T) {
+	inputDir := t.TempDir()
+	outputDir := t.TempDir()
+	existing := filepath.Join(outputDir, "photo.jpg")
+	incoming := filepath.Join(inputDir, "incoming.jpg")
+	writeTestFile(t, existing, "same photo bytes")
+	writeTestFile(t, incoming, "same photo bytes")
+
+	actions, err := resolveCollisions([]FileAction{{OriginalPath: incoming, NewName: "photo.jpg"}}, outputDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !actions[0].IsDuplicate {
+		t.Fatal("identical content was not classified as a duplicate")
+	}
+	if got, want := actions[0].NewName, "photo.jpg"; got != want {
+		t.Fatalf("NewName = %q, want %q", got, want)
+	}
+}
+
+func TestResolveCollisions_SameBatchUsesHashesAndSuffixes(t *testing.T) {
+	inputDir := t.TempDir()
+	outputDir := t.TempDir()
+	first := filepath.Join(inputDir, "first.jpg")
+	second := filepath.Join(inputDir, "second.jpg")
+	third := filepath.Join(inputDir, "third.jpg")
+	writeTestFile(t, first, "first photo")
+	writeTestFile(t, second, "second photo")
+	writeTestFile(t, third, "first photo")
+
+	actions, err := resolveCollisions([]FileAction{
+		{OriginalPath: first, NewName: "photo.jpg"},
+		{OriginalPath: second, NewName: "photo.jpg"},
+		{OriginalPath: third, NewName: "photo.jpg"},
+	}, outputDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if actions[0].NewName != "photo.jpg" || actions[0].IsDuplicate {
+		t.Fatalf("unexpected first action: %+v", actions[0])
+	}
+	if actions[1].NewName != "photo_2.jpg" || actions[1].IsDuplicate {
+		t.Fatalf("unexpected second action: %+v", actions[1])
+	}
+	if actions[2].NewName != "photo.jpg" || !actions[2].IsDuplicate {
+		t.Fatalf("unexpected third action: %+v", actions[2])
+	}
+}
+
+func TestRename_PreservesDifferentContentCollision(t *testing.T) {
+	inputDir := t.TempDir()
+	outputDir := t.TempDir()
+	duplicateDir := filepath.Join(outputDir, "DUPLICATES")
+	errorDir := filepath.Join(outputDir, "ERROR-OUTPUT")
+	existing := filepath.Join(outputDir, "photo.jpg")
+	incoming := filepath.Join(inputDir, "incoming.jpg")
+	writeTestFile(t, existing, "existing photo")
+	writeTestFile(t, incoming, "different photo")
+
+	err := Rename([]FileAction{{OriginalPath: incoming, NewName: "photo.jpg"}}, outputDir, errorDir, duplicateDir, func() {})
+	if err != nil {
+		t.Fatal(err)
+	}
+	content, err := os.ReadFile(filepath.Join(outputDir, "photo_2.jpg"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, want := string(content), "different photo"; got != want {
+		t.Fatalf("renamed content = %q, want %q", got, want)
+	}
+	if entries, err := os.ReadDir(duplicateDir); err != nil || len(entries) != 0 {
+		t.Fatalf("duplicate directory entries = %v, err = %v", entries, err)
+	}
+}
+
+func writeTestFile(t *testing.T, path, content string) {
+	t.Helper()
+	if err := os.WriteFile(path, []byte(content), 0644); err != nil {
+		t.Fatal(err)
+	}
+}
