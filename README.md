@@ -6,19 +6,23 @@ A powerful and simple TUI (Terminal User Interface) tool built in Go for automat
 
 - **EXIF-Based Renaming**: Automatically renames files using the original capture date, camera make, and model.
 - **Smart Metadata Detection**: Detects if an image has been edited (e.g., via Lightroom) and includes that in the filename.
-- **Duplicate Handling**: Automatically detects and moves duplicate files to a dedicated `DUPLICATES` folder to prevent data loss or overwriting.
+- **Content-Based Duplicate Handling**: Uses SHA-256 when filenames collide. Byte-identical files move to `DUPLICATES`; different files are preserved with `_2`, `_3`, and later suffixes.
 - **Error Management**: Moves files with missing or corrupt metadata to an `ERROR-OUTPUT` folder for manual review.
 - **Progress Tracking**: Real-time progress bar shows the status of your renaming task.
-- **Multi-Format Support**: Supports a wide range of formats including JPG, PNG, GIF, BMP, TIFF, WebP, HEIF/HEIC, and various RAW formats (ARW, CR2, CR3, DNG, NEF, RW2, SR2, SRW).
+- **Multi-Format Support**: Supports a wide range of formats including JPG, PNG, GIF, BMP, TIFF, WebP, HEIF/HEIC, MOV, MP4, and various RAW formats (ARW, CR2, CR3, DNG, NEF, RW2, SR2, SRW).
 - **Cross-Platform**: Built with [Bubble Tea](https://github.com/charmbracelet/bubbletea), ensuring a beautiful terminal experience on macOS, Linux, and Windows.
 
 ## 📸 Renaming Logic
 
 The tool generates filenames based on the following pattern:
 - **Standard**: `YYYY-MM-DD_HH-MM-SS_Maker-Model.ext`
-- **Edited**: `YYYY-MM-DD_HH-MM-SS_Maker-Model_Software.ext` (e.g., including "Lightroom")
+- **Edited**: `YYYY-MM-DD_HH-MM-SS_Maker-Model_Editor.ext` when Lightroom, Photoshop, or Photomator is explicitly detected
+
+Missing camera metadata and unrecognized software never add `Unknown` or `Original` placeholders.
 
 ## 📦 Installation
+
+Photo Renamer requires [ExifTool](https://exiftool.org/) to be installed and available as `exiftool` on `PATH`. Follow the [ExifTool installation guide](https://exiftool.org/install.html) and verify the dependency with `exiftool -ver`. See [the dependency and timestamp policy](docs/exiftool.md) for details.
 
 ### From Binary (Recommended)
 
@@ -74,8 +78,7 @@ go run .
 
 - [Bubble Tea](https://github.com/charmbracelet/bubbletea): A powerful, functional TUI framework.
 - [Lip Gloss](https://github.com/charmbracelet/lipgloss): Style definitions for nice terminal layouts.
-- [goexif](https://github.com/rwcarlsen/goexif): EXIF metadata decoding.
-- [gjson](https://github.com/tidwall/gjson): Fast JSON parsing for metadata handling.
+- [ExifTool](https://exiftool.org/): Group-aware metadata extraction for still images, RAW files, HEIC/HEIF, MOV, and MP4. It is an external runtime dependency and is not bundled in releases.
 
 ## 🤝 Contributing
 

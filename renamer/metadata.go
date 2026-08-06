@@ -1,95 +1,91 @@
 package renamer
 
 import (
+	"context"
+	"encoding/json"
+	"fmt"
 	"log"
-	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
-
-	"github.com/rwcarlsen/goexif/exif"
-	"github.com/tidwall/gjson"
 )
 
-func GetExifData(file string) (jsonString string) {
-	imgFile, err := os.Open(file)
+// GetExifData returns normalized metadata for the TUI's single-file debug view.
+func GetExifData(file string) string {
+	items, err := (ExifTool{}).Extract(context.Background(), []string{file})
 	if err != nil {
-		return "error"
+		data, _ := json.Marshal(map[string]string{"Error": err.Error()})
+		return string(data)
 	}
-
-	metaData, err := exif.Decode(imgFile)
+	if len(items) != 1 {
+		return `{"Error":"ExifTool returned no metadata"}`
+	}
+	item := items[0]
+	values := map[string]string{
+		"SourceFile": item.SourceFile, "FileType": item.FileType, "FileExtension": item.FileExtension,
+		"CaptureTime": item.CaptureTime.Format("2006-01-02T15:04:05Z07:00"), "CaptureSource": item.CaptureSource,
+		"Make": item.Make, "Model": item.Model, "Software": item.Software,
+	}
+	if item.Err != nil {
+		values["Error"] = item.Err.Error()
+	}
+	data, err := json.Marshal(values)
 	if err != nil {
-		err = imgFile.Close()
-		if err != nil {
-			return "error"
-		}
-		return "error"
+		return fmt.Sprintf(`{"Error":%q}`, err.Error())
 	}
-
-	jsonByte, err := metaData.MarshalJSON()
-	if err != nil {
-		log.Fatal(err.Error())
-	}
-
-	err = imgFile.Close()
-	if err != nil {
-		return "error"
-	}
-	jsonString = string(jsonByte)
-
-	return jsonString
+	return string(data)
 }
 
-func date(metadata string) (date string) {
-	dateTime := gjson.Get(metadata, "DateTimeOriginal").String()
-	if dateTime == "" {
-		dateTime = gjson.Get(metadata, "DateTimeDigitized").String()
+func filenameFor(metadata Metadata, originalPath string) string {
+	if metadata.Err != nil {
+		return "METADATA_error"
 	}
-	if dateTime == "" {
-		dateTime = gjson.Get(metadata, "DateTime").String()
+	ext := filepath.Ext(originalPath)
+	if ext == "" {
+		return "FILEEXT_error"
 	}
-	if dateTime == "" {
-		return ""
+	if metadata.CaptureTime.IsZero() {
+		return "DATE_error"
 	}
-	replacer := strings.NewReplacer(":", "-", " ", "_")
-	return replacer.Replace(dateTime)
+	modelName := normalizedModel(metadata.Model)
+	makerName := metadata.Make
+	editor := editedMetadata(metadata)
+	base := metadata.CaptureTime.Format("2006-01-02_15-04-05")
+	if makerName != "" && modelName != "" {
+		base += "_" + makerName + "-" + modelName
+	} else if makerName != "" {
+		base += "_" + makerName
+	} else if modelName != "" {
+		base += "_" + modelName
+	}
+	if editor != "" {
+		base += "_" + editor
+	}
+	return base + ext
 }
 
-func model(metadata string) (model string) {
-	model = gjson.Get(metadata, "Model").String()
-	if model == "" {
-		return "Unknown"
+// Image is retained for callers that generate a name for one file. Batch preview
+// uses ScanFiles and therefore starts only one ExifTool process for the full batch.
+func Image(file string) string {
+	items, err := (ExifTool{}).Extract(context.Background(), []string{file})
+	if err != nil || len(items) != 1 {
+		return "METADATA_error"
 	}
-	if strings.Contains(model, "(") {
-		model = model[:strings.Index(model, "(")]
-	}
-	return model
+	return filenameFor(items[0], file)
 }
 
-func maker(metadata string) (maker string) {
-	maker = gjson.Get(metadata, "Make").String()
-	if maker == "" {
-		return "Unknown"
+func normalizedModel(value string) string {
+	if index := strings.Index(value, "("); index >= 0 {
+		return value[:index]
 	}
-	return maker
+	return value
 }
 
-func edited(metadata string) (edited string) {
-	model := model(metadata)
-	software := gjson.Get(metadata, "Software").String()
-
-	if strings.Contains(software, model) {
-		return model
-	}
-	if strings.Contains(software, "Lightroom") {
+func editedMetadata(metadata Metadata) string {
+	software := metadata.Software
+	if strings.Contains(software, "Lightroom") || strings.Contains(software, "Adobe Photoshop Lightroom Classic") {
 		return "Lightroom"
-	}
-	if strings.Contains(software, "Adobe Photoshop Lightroom Classic") {
-		return "Lightroom"
-	}
-	if strings.Contains(software, "Adobe Photoshop") {
-		return "Photoshop"
 	}
 	if strings.Contains(software, "Photoshop") {
 		return "Photoshop"
@@ -97,61 +93,17 @@ func edited(metadata string) (edited string) {
 	if strings.Contains(software, "Photomator") {
 		return "Photomator"
 	}
-	if strings.Contains(software, "Ver.1.0") {
-		return model
-	}
 	return ""
-}
-
-func Image(file string) (newFileName string) {
-	metadata := GetExifData(file)
-	if metadata == "error" {
-		return "METADATA_error"
-	}
-
-	fileExt := filepath.Ext(file)
-	if fileExt == "" {
-		return "FILEEXT_error"
-	}
-
-	date := date(metadata)
-	if date == "" {
-		return "DATE_error"
-	}
-
-	model := model(metadata)
-	maker := maker(metadata)
-
-	edited := edited(metadata)
-	if edited == "" {
-		edited = "Original"
-	}
-
-	if edited != model {
-		newFileName = date + "_" + maker + "-" + model + "_" + edited + fileExt
-		return newFileName
-	}
-	if edited == model {
-		newFileName = date + "_" + maker + "-" + model + fileExt
-		return newFileName
-	}
-	return "ERROR_error"
 }
 
 func OpenOutputFolder(folder string) (err error) {
 	switch runtime.GOOS {
 	case "darwin":
-		err := exec.Command("open", "-R", folder).Run()
-		if err != nil {
-			log.Fatal(err)
-		}
+		err = exec.Command("open", "-R", folder).Run()
 	case "windows":
-		err := exec.Command("explorer", "/select,", folder).Run()
-		if err != nil {
-			log.Fatal(err)
-		}
+		err = exec.Command("explorer", "/select,", folder).Run()
 	default:
-		log.Fatal("Unsupported operating system")
+		log.Printf("unsupported operating system")
 	}
 	return err
 }

@@ -18,7 +18,8 @@ go test -v ./...
 ```
 
 ### Test Coverage
-- **renamer/metadata_test.go**: Tests the logic for extracting metadata and generating new filenames. It uses mock JSON strings to simulate Exif data.
+- **renamer/metadata_test.go**: Tests metadata-driven filename generation.
+- **renamer/exiftool_test.go**: Tests grouped JSON normalization, timestamp precedence and offsets, safe batch arguments, dependency/process errors, malformed and partial output, and cancellation with a fake ExifTool process.
 - **renamer/renamer_test.go**: Tests the `ScanFiles` function by creating temporary directories with dummy files to ensure the file walker correctly identifies valid images and ignores excluded files.
 
 ## Manual Testing
