@@ -45,7 +45,7 @@ xattr -d com.apple.quarantine photo-renamer
 ### From Source
 
 ```bash
-git clone https://github.com/yourusername/photo-renamer.git
+git clone https://github.com/tbuserdev/photo-renamer.git
 cd photo-renamer
 go mod download
 ```

@@ -30,7 +30,7 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/')
     strategy:
       matrix:
-        goos: [windows, darwin]
+        goos: [windows, darwin, linux]
         goarch: [amd64, arm64]
         exclude:
           - goos: windows
