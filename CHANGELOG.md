@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.1.4] - 2026-08-06
+
+### Added
+- **Metadata:** Added ExifTool-based, group-aware metadata extraction for supported photos, RAW files, HEIC/HEIF, MOV, and MP4 media.
+- **Metadata:** Added capture-time selection for video metadata, including timezone-aware QuickTime timestamps.
+- **Testing:** Added coverage for ExifTool normalization, batch execution, timestamp parsing, dependency failures, partial or malformed output, and cancellation.
+
+### Changed
+- **Metadata:** Metadata scanning now processes supported files in a single ExifTool batch and records the source metadata field used for each capture time.
+- **Dependencies:** Replaced the bundled Go EXIF/JSON parsing dependencies with the external ExifTool runtime.
+
+### Fixed
+- **Metadata:** Preserve metadata failures for individual files rather than failing the entire scan when ExifTool returns usable per-file results.
+- **UI:** Show the underlying metadata error in the rename preview for files that cannot be processed.
+
 
 
 ## [v0.1.3] - 2026-01-19
