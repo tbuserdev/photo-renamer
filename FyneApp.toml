@@ -1,0 +1,11 @@
+Website = "https://github.com/tbuserdev/photo-renamer"
+
+[Details]
+Icon = "icon.png"
+Name = "Photo Renamer"
+ID = "dev.tbuser.photo-renamer"
+Version = "0.1.4"
+Build = 2
+
+[Migrations]
+fyneDo = true

@@ -20,21 +20,35 @@ jobs:
       with:
         go-version: 1.25
 
+    - name: Install desktop build dependencies
+      run: sudo apt-get update && sudo apt-get install -y gcc libgl1-mesa-dev xorg-dev libgtk-3-dev
+
     - name: Test
       run: go test -v ./...
 
   build:
     name: Build
     needs: test
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.runner }}
     if: startsWith(github.ref, 'refs/tags/')
     strategy:
       matrix:
-        goos: [windows, darwin, linux]
-        goarch: [amd64, arm64]
-        exclude:
-          - goos: windows
-            goarch: arm64
+        include:
+          - runner: macos-15-intel
+            target: darwin
+            arch: amd64
+          - runner: macos-15
+            target: darwin
+            arch: arm64
+          - runner: windows-latest
+            target: windows
+            arch: amd64
+          - runner: ubuntu-latest
+            target: linux
+            arch: amd64
+          - runner: ubuntu-24.04-arm
+            target: linux
+            arch: arm64
 
     steps:
     - name: Checkout
@@ -45,32 +59,43 @@ jobs:
       with:
         go-version: 1.25
 
-    - name: Build
-      env:
-        GOOS: ${{ matrix.goos }}
-        GOARCH: ${{ matrix.goarch }}
-        CGO_ENABLED: 0
+    - name: Install Linux desktop build dependencies
+      if: runner.os == 'Linux'
+      run: sudo apt-get update && sudo apt-get install -y gcc libgl1-mesa-dev xorg-dev libgtk-3-dev
+
+    - name: Install Fyne packaging tool
+      run: go install fyne.io/tools/cmd/fyne@v1.7.2
+
+    - name: Build and package
+      shell: bash
       run: |
-          SIMPLE_NAME="photo-renamer"
-          if [ "${{ matrix.goos }}" = "windows" ]; then
-            SIMPLE_NAME="${SIMPLE_NAME}.exe"
-          fi
-          
-          go build -ldflags "-X main.Version=${{ github.ref_name }}" -o build/${SIMPLE_NAME} .
-          
-          ASSET_NAME=photo-renamer_${{ github.ref_name }}_${{ matrix.goos }}-${{ matrix.goarch }}
-          
-          cd build
-          if [ "${{ matrix.goos }}" = "windows" ]; then
-            zip ${ASSET_NAME}.zip ${SIMPLE_NAME}
+          set -euo pipefail
+          VERSION="${GITHUB_REF_NAME#v}"
+          ASSET_NAME="photo-renamer_${GITHUB_REF_NAME}_${{ matrix.target }}-${{ matrix.arch }}"
+          mkdir -p build
+
+          if [ "${{ matrix.target }}" = "darwin" ]; then
+            go build -tags migrated_fynedo -ldflags "-s -w -X main.Version=${GITHUB_REF_NAME}" -o photo-renamer .
+            fyne package --source-dir . --os darwin --executable photo-renamer --name PhotoRenamer --icon icon.png --app-version "$VERSION" --app-build "${GITHUB_RUN_NUMBER}" --release
+            ditto -c -k --sequesterRsrc --keepParent PhotoRenamer.app "build/${ASSET_NAME}.zip"
+          elif [ "${{ matrix.target }}" = "windows" ]; then
+            go build -tags migrated_fynedo -ldflags "-s -w -H windowsgui -X main.Version=${GITHUB_REF_NAME}" -o photo-renamer-bin.exe .
+            fyne package --source-dir . --os windows --executable photo-renamer-bin.exe --name PhotoRenamer --icon icon.png --app-version "$VERSION" --app-build "${GITHUB_RUN_NUMBER}" --release
+            7z a "build/${ASSET_NAME}.zip" PhotoRenamer.exe
           else
-            zip ${ASSET_NAME}.zip ${SIMPLE_NAME}
+            go build -tags migrated_fynedo -ldflags "-s -w -X main.Version=${GITHUB_REF_NAME}" -o photo-renamer .
+            fyne package --source-dir . --os linux --executable photo-renamer --name PhotoRenamer --icon icon.png --app-version "$VERSION" --app-build "${GITHUB_RUN_NUMBER}" --release
+            archive=$(find . -maxdepth 1 -type f -name 'PhotoRenamer*.tar*' -print -quit)
+            test -n "$archive"
+            extension="${archive#./PhotoRenamer.}"
+            mv "$archive" "build/${ASSET_NAME}.${extension}"
           fi
+
     - name: Upload Artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: photo-renamer_${{ github.ref_name }}_${{ matrix.goos }}-${{ matrix.goarch }}
-        path: build/*.zip
+        name: photo-renamer_${{ github.ref_name }}_${{ matrix.target }}-${{ matrix.arch }}
+        path: build/*
 
   release:
     name: Create Release

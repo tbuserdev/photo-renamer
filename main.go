@@ -3,9 +3,8 @@ package main
 import (
 	"fmt"
 	"os"
-	"photo-renamer/tui"
 
-	tea "github.com/charmbracelet/bubbletea"
+	"photo-renamer/gui"
 )
 
 var Version = "dev"
@@ -16,9 +15,5 @@ func main() {
 		return
 	}
 
-	p := tea.NewProgram(tui.InitialModel())
-	if _, err := p.Run(); err != nil {
-		fmt.Printf("Alas, there's been an error: %v", err)
-		os.Exit(1)
-	}
+	gui.Run(Version)
 }
