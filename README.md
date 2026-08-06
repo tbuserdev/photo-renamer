@@ -64,7 +64,7 @@ chmod +x photo-renamer
 If **Open Anyway** is unavailable, you can remove the quarantine attribute from this specific app in Terminal:
 
 ```bash
-xattr -dr com.apple.quarantine /Applications/PhotoRenamer.app
+xattr -d com.apple.quarantine /Applications/PhotoRenamer.app
 ```
 
 Only run that command after confirming that the app came from this project's GitHub Releases page. It bypasses Apple's quarantine check for Photo Renamer; do not disable Gatekeeper globally.
