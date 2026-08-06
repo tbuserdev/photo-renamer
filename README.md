@@ -25,7 +25,7 @@ Missing camera metadata and unrecognized software never add `Unknown` or `Origin
 
 ## 📦 Installation
 
-Photo Renamer requires [ExifTool](https://exiftool.org/) to be installed and available as `exiftool` on `PATH`. Follow the [ExifTool installation guide](https://exiftool.org/install.html) and verify the dependency with `exiftool -ver`. See [the dependency and timestamp policy](docs/exiftool.md) for details.
+Photo Renamer requires [ExifTool](https://exiftool.org/) to be installed. Follow the [ExifTool installation guide](https://exiftool.org/install.html) and verify the dependency with `exiftool -ver`. On macOS, the app also checks the standard Homebrew and MacPorts install locations because apps launched from Finder do not inherit your shell's `PATH`. See [the dependency and timestamp policy](docs/exiftool.md) for details.
 
 ### From Binary (Recommended)
 
@@ -33,21 +33,43 @@ Photo Renamer requires [ExifTool](https://exiftool.org/) to be installed and ava
 2. Download the archive for your operating system.
 3. Extract the archive.
 
-#### macOS / Linux users
+#### Linux users
+
 You may need to make the binary executable:
 
 ```bash
 chmod +x photo-renamer
 ```
 
-**macOS Note:**
-If you receive a "Developer cannot be verified" error:
-1. Open System Settings > Privacy & Security.
-2. Scroll down to the Security section and click "Open Anyway".
-Alternatively, run this command on the downloaded binary:
+### macOS installation
+
+1. Install ExifTool with [Homebrew](https://brew.sh/):
+
+   ```bash
+   brew install exiftool
+   exiftool -ver
+   ```
+
+   The app automatically checks the standard Homebrew locations on both Apple Silicon and Intel Macs, as well as the MacPorts location. You do not need to launch the app from Terminal.
+
+2. Download the macOS ZIP for your processor from [Releases](https://github.com/tbuserdev/photo-renamer/releases):
+
+   - Apple Silicon (`M1`, `M2`, `M3`, `M4`, or newer): `darwin-arm64`
+   - Intel Mac: `darwin-amd64`
+
+3. Extract the ZIP and drag `PhotoRenamer.app` into your `/Applications` folder.
+
+4. Because current release builds are not notarized by Apple, macOS may block the first launch. Try to open the app once, then go to **System Settings → Privacy & Security**, scroll to **Security**, and click **Open Anyway** for Photo Renamer. Confirm by clicking **Open**. This grants an exception only for this app and keeps Gatekeeper enabled.
+
+If **Open Anyway** is unavailable, you can remove the quarantine attribute from this specific app in Terminal:
+
 ```bash
-xattr -d com.apple.quarantine photo-renamer
+xattr -dr com.apple.quarantine /Applications/PhotoRenamer.app
 ```
+
+Only run that command after confirming that the app came from this project's GitHub Releases page. It bypasses Apple's quarantine check for Photo Renamer; do not disable Gatekeeper globally.
+
+When selecting protected locations such as Desktop, Documents, Downloads, removable volumes, or network drives, macOS may ask for file-access permission. Choose **Allow**. You can review or revoke access later under **System Settings → Privacy & Security → Files & Folders**.
 
 ### From Source
 

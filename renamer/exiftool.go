@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strings"
 	"time"
 )
@@ -45,9 +46,9 @@ func (e ExifTool) Extract(ctx context.Context, paths []string) ([]Metadata, erro
 	if len(paths) == 0 {
 		return nil, nil
 	}
-	path := e.Path
-	if path == "" {
-		path = "exiftool"
+	path, err := resolveExifToolPath(e.Path, exifToolFallbackPaths())
+	if err != nil {
+		return nil, fmt.Errorf("ExifTool is required but was not found; install ExifTool and ensure `exiftool` is available: %w", err)
 	}
 	args := []string{
 		"-j", "-G1", "-a", "-api", "QuickTimeUTC=1",
@@ -83,6 +84,34 @@ func (e ExifTool) Extract(ctx context.Context, paths []string) ([]Metadata, erro
 		return nil, outputErr
 	}
 	return items, nil
+}
+
+func exifToolFallbackPaths() []string {
+	if runtime.GOOS != "darwin" {
+		return nil
+	}
+	// Apps launched from Finder receive a system-only PATH and therefore cannot
+	// normally see package-manager binaries, even though Terminal can.
+	return []string{
+		"/opt/homebrew/bin/exiftool",
+		"/usr/local/bin/exiftool",
+		"/opt/local/bin/exiftool",
+	}
+}
+
+func resolveExifToolPath(configured string, fallbacks []string) (string, error) {
+	if configured != "" {
+		return exec.LookPath(configured)
+	}
+	if path, err := exec.LookPath("exiftool"); err == nil {
+		return path, nil
+	}
+	for _, candidate := range fallbacks {
+		if path, err := exec.LookPath(candidate); err == nil {
+			return path, nil
+		}
+	}
+	return "", exec.ErrNotFound
 }
 
 func validateExifToolOutput(output []byte, expected int) ([]Metadata, error) {

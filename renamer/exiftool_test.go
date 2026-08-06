@@ -138,6 +138,26 @@ func TestExifToolBatchUsesOneProcessAndSafeArguments(t *testing.T) {
 	}
 }
 
+func TestResolveExifToolPathFallsBackWhenGUIPathOmitsInstallDirectory(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("executable shell fixture is Unix-only")
+	}
+	dir := t.TempDir()
+	executable := filepath.Join(dir, "exiftool")
+	if err := os.WriteFile(executable, []byte("#!/bin/sh\nexit 0\n"), 0755); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("PATH", "/usr/bin:/bin:/usr/sbin:/sbin")
+
+	got, err := resolveExifToolPath("", []string{executable})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got != executable {
+		t.Fatalf("resolved path = %q, want %q", got, executable)
+	}
+}
+
 func TestExifToolIgnoresSuccessfulProcessDiagnosticsOnStderr(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("shell fixture is Unix-only")
