@@ -28,9 +28,12 @@ jobs:
 
   build:
     name: Build
-    needs: test
     runs-on: ${{ matrix.runner }}
     if: startsWith(github.ref, 'refs/tags/')
+    env:
+      # Use a workspace-local build cache so it can be restored consistently on
+      # Linux, macOS, and Windows runners.
+      GOCACHE: ${{ github.workspace }}/.ci-cache/go-build
     strategy:
       matrix:
         include:
@@ -54,10 +57,22 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v7
 
+    - name: Restore Go and Fyne caches
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/go/pkg/mod
+          ~/go/bin
+          ${{ env.GOCACHE }}
+        key: go-${{ runner.os }}-${{ matrix.arch }}-1.25-fyne-1.7.2-${{ hashFiles('go.sum') }}
+        restore-keys: |
+          go-${{ runner.os }}-${{ matrix.arch }}-1.25-fyne-1.7.2-
+
     - name: Set up Go
       uses: actions/setup-go@v7
       with:
         go-version: 1.25
+        cache: false
 
     - name: Install Linux desktop build dependencies
       if: runner.os == 'Linux'
@@ -66,7 +81,20 @@ jobs:
     - name: Install Fyne packaging tool
       run: go install fyne.io/tools/cmd/fyne@v1.7.2
 
-    - name: Build and package
+    - name: Build application
+      shell: bash
+      run: |
+          set -euo pipefail
+
+          if [ "${{ matrix.target }}" = "darwin" ]; then
+            go build -tags migrated_fynedo -ldflags "-s -w -X main.Version=${GITHUB_REF_NAME}" -o photo-renamer .
+          elif [ "${{ matrix.target }}" = "windows" ]; then
+            go build -tags migrated_fynedo -ldflags "-s -w -H windowsgui -X main.Version=${GITHUB_REF_NAME}" -o photo-renamer-bin.exe .
+          else
+            go build -tags migrated_fynedo -ldflags "-s -w -X main.Version=${GITHUB_REF_NAME}" -o photo-renamer .
+          fi
+
+    - name: Package application
       shell: bash
       run: |
           set -euo pipefail
@@ -75,15 +103,12 @@ jobs:
           mkdir -p build
 
           if [ "${{ matrix.target }}" = "darwin" ]; then
-            go build -tags migrated_fynedo -ldflags "-s -w -X main.Version=${GITHUB_REF_NAME}" -o photo-renamer .
             fyne package --source-dir . --os darwin --executable photo-renamer --name PhotoRenamer --icon icon.png --app-version "$VERSION" --app-build "${GITHUB_RUN_NUMBER}" --release
             ditto -c -k --sequesterRsrc --keepParent PhotoRenamer.app "build/${ASSET_NAME}.zip"
           elif [ "${{ matrix.target }}" = "windows" ]; then
-            go build -tags migrated_fynedo -ldflags "-s -w -H windowsgui -X main.Version=${GITHUB_REF_NAME}" -o photo-renamer-bin.exe .
             fyne package --source-dir . --os windows --executable photo-renamer-bin.exe --name PhotoRenamer --icon icon.png --app-version "$VERSION" --app-build "${GITHUB_RUN_NUMBER}" --release
             7z a "build/${ASSET_NAME}.zip" PhotoRenamer.exe
           else
-            go build -tags migrated_fynedo -ldflags "-s -w -X main.Version=${GITHUB_REF_NAME}" -o photo-renamer .
             fyne package --source-dir . --os linux --executable photo-renamer --name PhotoRenamer --icon icon.png --app-version "$VERSION" --app-build "${GITHUB_RUN_NUMBER}" --release
             archive=$(find . -maxdepth 1 -type f -name 'PhotoRenamer*.tar*' -print -quit)
             test -n "$archive"
@@ -99,7 +124,7 @@ jobs:
 
   release:
     name: Create Release
-    needs: build
+    needs: [test, build]
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/')
     permissions:
