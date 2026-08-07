@@ -3,6 +3,7 @@ package renamer
 import (
 	"context"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -135,6 +136,28 @@ func TestExifToolBatchUsesOneProcessAndSafeArguments(t *testing.T) {
 	got := strings.Split(strings.TrimSpace(string(args)), "\n")
 	if got[len(got)-3] != "--" || got[len(got)-2] != paths[0] || got[len(got)-1] != paths[1] {
 		t.Fatalf("unsafe/unexpected args: %#v", got)
+	}
+}
+
+func TestSplitExifToolPathBatchesBoundsEveryInvocation(t *testing.T) {
+	paths := make([]string, 201)
+	for index := range paths {
+		paths[index] = fmt.Sprintf("photo-%03d.jpg", index)
+	}
+
+	batches := splitExifToolPathBatches(paths)
+	if len(batches) != 3 {
+		t.Fatalf("batch count = %d, want 3", len(batches))
+	}
+	if len(batches[0]) != exifToolMaxFilesPerBatch || len(batches[1]) != exifToolMaxFilesPerBatch || len(batches[2]) != 1 {
+		t.Fatalf("batch sizes = %d, %d, %d", len(batches[0]), len(batches[1]), len(batches[2]))
+	}
+	for index, path := range paths {
+		batch := index / exifToolMaxFilesPerBatch
+		offset := index % exifToolMaxFilesPerBatch
+		if batches[batch][offset] != path {
+			t.Fatalf("path %d = %q, want %q", index, batches[batch][offset], path)
+		}
 	}
 }
 

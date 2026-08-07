@@ -39,6 +39,10 @@ type ExifTool struct {
 	Path string
 }
 
+// exifToolMaxFilesPerBatch keeps Windows process arguments comfortably below
+// its command-line limit, even when photos live in deeply nested folders.
+const exifToolMaxFilesPerBatch = 100
+
 func (e ExifTool) Extract(ctx context.Context, paths []string) ([]Metadata, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
@@ -50,6 +54,30 @@ func (e ExifTool) Extract(ctx context.Context, paths []string) ([]Metadata, erro
 	if err != nil {
 		return nil, fmt.Errorf("ExifTool is required but was not found; install ExifTool and ensure `exiftool` is available: %w", err)
 	}
+	items := make([]Metadata, 0, len(paths))
+	for _, batch := range splitExifToolPathBatches(paths) {
+		batchItems, err := e.extractBatch(ctx, path, batch)
+		if err != nil {
+			return nil, err
+		}
+		items = append(items, batchItems...)
+	}
+	return items, nil
+}
+
+func splitExifToolPathBatches(paths []string) [][]string {
+	batches := make([][]string, 0, (len(paths)+exifToolMaxFilesPerBatch-1)/exifToolMaxFilesPerBatch)
+	for start := 0; start < len(paths); start += exifToolMaxFilesPerBatch {
+		end := start + exifToolMaxFilesPerBatch
+		if end > len(paths) {
+			end = len(paths)
+		}
+		batches = append(batches, paths[start:end])
+	}
+	return batches
+}
+
+func (e ExifTool) extractBatch(ctx context.Context, path string, paths []string) ([]Metadata, error) {
 	args := []string{
 		"-j", "-G1", "-a", "-api", "QuickTimeUTC=1",
 		"-FileType", "-FileTypeExtension", "-DateTimeOriginal", "-CreateDate",
